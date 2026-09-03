@@ -19,6 +19,8 @@ IMG = {
     "tradicional": b64(os.path.join(ASSETS, "tradicional.webp")),
 }
 
+HERO_CAN = b64(os.path.join(ASSETS, "balinovidro.png"))
+
 IMG_ZERO = {
     "zero-tradicional":     b64(os.path.join(ASSETS, "zero-tradicional.webp")),
     "zero-tropical":        b64(os.path.join(ASSETS, "zero-tropical.webp")),
@@ -27,14 +29,16 @@ IMG_ZERO = {
     "zero-uvaverde-collab": b64(os.path.join(ASSETS, "zero-uvaverde-collab.webp")),
 }
 
+
 # The "Sem Açúcar" line: same flavours the visitor just met, reformulated without sugar,
-# plus one special-edition collab can (printed as-is on the real product).
+# plus one special-edition collab can (printed as-is on the real product). accent: tints
+# each card's hover glow to roughly match its own can color.
 ZERO_LINE = [
-    dict(key="zero-tradicional", name="Tradicional", note=None),
-    dict(key="zero-tropical", name="Tropical", note=None),
-    dict(key="zero-morango", name="Morango e Pêssego", note=None),
-    dict(key="zero-melancia", name="Melancia", note=None),
-    dict(key="zero-uvaverde-collab", name="Uva Verde", note="Edição especial · Fernando & Sorocaba"),
+    dict(key="zero-tradicional", name="Tradicional", note=None, accent="#E8B923"),
+    dict(key="zero-tropical", name="Tropical", note=None, accent="#F5C518"),
+    dict(key="zero-morango", name="Morango e Pêssego", note=None, accent="#F0793A"),
+    dict(key="zero-melancia", name="Melancia", note=None, accent="#E23B4E"),
+    dict(key="zero-uvaverde-collab", name="Uva Verde", note="Edição especial · Fernando & Sorocaba", accent="#8DC63F"),
 ]
 
 HERO_BG = "#0E0E10"
@@ -108,7 +112,7 @@ dots = "\n".join(
 def zero_card_html(z, i):
     note_html = f'<span class="zero-card__note">{z["note"]}</span>' if z["note"] else ""
     return f"""
-        <figure class="zero-card" data-reveal="card" style="--card-delay:{i}">
+        <figure class="zero-card" data-reveal="card" style="--card-delay:{i};--accent:{z['accent']}">
           <img class="zero-card__img" src="data:image/webp;base64,{IMG_ZERO[z['key']]}"
             alt="Lata Baly {z['name']} sem açúcar" loading="lazy" draggable="false">
           <figcaption class="zero-card__cap">
@@ -118,6 +122,11 @@ def zero_card_html(z, i):
         </figure>"""
 
 zero_cards = "\n".join(zero_card_html(z, i) for i, z in enumerate(ZERO_LINE))
+
+zero_dots = "\n".join(
+    f'      <button type="button" class="zero__dot" data-zero-dot="{i}" aria-label="Ir para {z["name"]}"></button>'
+    for i, z in enumerate(ZERO_LINE)
+)
 
 swatches = "\n".join(
     f'      <span class="about__swatch" style="background:{f["bg"]};box-shadow:0 0 0 1px {f["bg"]}, 0 0 0 3px rgba(246,243,236,0.08);" title="{f["short"]}"></span>'
@@ -238,30 +247,52 @@ HTML = f"""<!doctype html>
   }}
 
   /* ---------- hero ---------- */
+  /* Two-column editorial layout: copy left, the actual can (studio shot we already have,
+     conveniently close to the reference's mood) big and dramatic on the right, glow tucked
+     behind it rather than dead-center. Collapses to a single stacked column on mobile/tablet. */
   .hero {{
-    position: relative; min-height: 92vh; display: flex; flex-direction: column;
-    justify-content: center; align-items: center; text-align: center; padding: 7rem 1.5rem 5rem;
-    background: radial-gradient(60% 55% at 50% 28%, rgba(232,185,35,0.14), transparent 70%), var(--graphite);
+    position: relative; min-height: 92vh; padding: 8rem clamp(1.5rem, 6vw, 5rem) 5rem;
+    background: var(--graphite);
     overflow: hidden;
+    display: grid; grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+    align-items: center; gap: clamp(1rem, 2.5vw, 2rem);
   }}
-  .hero__eyebrow {{ font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold); margin: 0 0 1.4rem; }}
-  .hero__title {{ font-family: var(--font-display); font-size: clamp(3.4rem, 11vw, 8.5rem); line-height: 0.86; margin: 0; color: var(--paper); }}
+  .hero__copy {{ position: relative; z-index: 2; text-align: left; }}
+  .hero__eyebrow {{ font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold); margin: 0 0 1.2rem; }}
+  .hero__title {{ font-family: var(--font-display); font-size: clamp(2.6rem, 5.4vw, 4.6rem); line-height: 0.92; margin: 0; color: var(--paper); }}
   .hero__title em {{ font-style: normal; color: var(--gold); }}
-  .hero__sub {{ max-width: 34rem; margin: 1.6rem auto 0; font-size: clamp(1rem, 1.6vw, 1.2rem); line-height: 1.55; color: var(--paper-dim); }}
+  .hero__divider {{ display: block; width: 52px; height: 3px; margin: 1.5rem 0; background: var(--gold); border-radius: 999px; }}
+  .hero__sub {{ max-width: 28rem; margin: 0; font-size: clamp(0.95rem, 1.3vw, 1.05rem); line-height: 1.6; color: var(--paper-dim); }}
+  .hero__visual {{ position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; height: 100%; }}
+  .hero__can {{
+    width: min(70%, 460px); height: auto; display: block;
+    filter: drop-shadow(0 30px 50px rgba(0,0,0,0.55));
+  }}
   .hero__glow {{
-    position: absolute; top: 50%; left: 50%; width: min(70vw, 620px); height: min(70vw, 620px);
-    transform: translate(-50%, -50%); border-radius: 50%; pointer-events: none;
-    background: radial-gradient(closest-side, rgba(232,185,35,0.16), transparent 72%);
+    position: absolute; top: 50%; right: 6%; width: min(46vw, 560px); height: min(46vw, 560px);
+    transform: translateY(-50%); border-radius: 50%; pointer-events: none; z-index: 0;
+    background: radial-gradient(closest-side, rgba(232,185,35,0.22), transparent 72%);
     animation: heroPulse 6s ease-in-out infinite;
   }}
-  @keyframes heroPulse {{ 0%, 100% {{ opacity: 0.7; transform: translate(-50%, -50%) scale(0.94); }} 50% {{ opacity: 1; transform: translate(-50%, -50%) scale(1.04); }} }}
+  /* `scale` animated as its own property (not inside `transform`) so the mobile override
+     below can set its own `transform` (re-centering the glow) without the two fighting. */
+  @keyframes heroPulse {{ 0%, 100% {{ opacity: 0.7; scale: 0.94; }} 50% {{ opacity: 1; scale: 1.04; }} }}
   @media (prefers-reduced-motion: reduce) {{ .hero__glow {{ animation: none; }} }}
   .hero__scroll {{
-    position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%);
+    position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%); z-index: 2;
     font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase;
     color: var(--paper-dim); display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
   }}
   .hero__scroll-line {{ width: 1px; height: 34px; background: linear-gradient(to bottom, var(--gold), transparent); }}
+  @media (max-width: 860px) {{
+    .hero {{ grid-template-columns: 1fr; text-align: center; padding: 7rem 1.5rem 6rem; }}
+    .hero__copy {{ text-align: center; }}
+    .hero__divider {{ margin-left: auto; margin-right: auto; }}
+    .hero__sub {{ margin-left: auto; margin-right: auto; }}
+    .hero__visual {{ margin-top: 2rem; }}
+    .hero__can {{ width: min(66%, 320px); }}
+    .hero__glow {{ top: 62%; right: 50%; transform: translate(50%, -50%); width: min(90vw, 480px); height: min(90vw, 480px); }}
+  }}
 
   /* ---------- flavor stage: pinned crossfade ---------- */
   .stage-wrap {{
@@ -395,24 +426,72 @@ HTML = f"""<!doctype html>
     gap: clamp(1rem, 2.4vw, 1.75rem); max-width: 76rem; margin: 0 auto;
   }}
   .zero-card {{
-    margin: 0; width: clamp(148px, 17vw, 208px);
+    position: relative; z-index: 0; margin: 0; width: clamp(148px, 17vw, 208px);
     display: flex; flex-direction: column; align-items: center; gap: 0.85rem;
+  }}
+  .zero-card::before {{
+    content: ""; position: absolute; z-index: -1; top: 4%; left: 50%; width: 150%; height: 68%;
+    transform: translateX(-50%); border-radius: 50%; pointer-events: none;
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--accent, var(--gold)) 40%, transparent), transparent 72%);
+    opacity: 0; transition: opacity 0.45s ease;
   }}
   .zero-card__img {{
     width: 100%; height: auto; display: block;
     filter: drop-shadow(0 18px 26px rgba(0,0,0,0.5));
   }}
   .zero-card__cap {{ display: flex; flex-direction: column; gap: 0.25rem; }}
-  .zero-card__name {{ font-family: var(--font-body); font-weight: 700; font-size: 0.92rem; color: var(--paper); }}
+  .zero-card__name {{
+    font-family: var(--font-body); font-weight: 700; font-size: 0.92rem; color: var(--paper);
+    transition: color 0.3s ease;
+  }}
   .zero-card__note {{ font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.03em; color: var(--gold); }}
+
+  /* Hover flourish — mouse-only (skips touch, so a tap can't leave a "stuck" hover state):
+     the can lifts and picks up a soft glow tinted to its own flavor, name warms to match. */
+  @media (hover: hover) and (pointer: fine) {{
+    .zero-card__img {{ transition: transform 0.45s cubic-bezier(0.16,1,0.3,1), filter 0.45s ease; }}
+    .zero-card:hover {{ z-index: 1; }}
+    .zero-card:hover::before {{ opacity: 1; }}
+    .zero-card:hover .zero-card__img {{
+      transform: translateY(-8px) scale(1.05);
+      filter: drop-shadow(0 28px 30px rgba(0,0,0,0.5)) drop-shadow(0 0 22px color-mix(in srgb, var(--accent, var(--gold)) 60%, transparent));
+    }}
+    .zero-card:hover .zero-card__name {{ color: var(--accent, var(--gold)); }}
+  }}
+
+  /* Pagination dots: hidden on the wrapped desktop/tablet grid, shown only once the
+     mobile layout below turns .zero__grid into a swipeable, one-card-at-a-time carousel. */
+  .zero__dots {{ display: none; align-items: center; justify-content: center; gap: 0.7rem; margin: 1.75rem 0 0; }}
+  .zero__dot {{
+    position: relative; width: 6px; height: 6px; padding: 0; border: 0; border-radius: 50%; appearance: none;
+    background: rgba(246,243,236,0.28); -webkit-tap-highlight-color: transparent; cursor: pointer;
+    transition: transform 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+  }}
+  /* The visible dot stays a delicate 6px, but a thumb needs a real target to land on — this
+     pads the hit area tall (room is free above/below the row) without widening it enough to
+     overlap the next dot, which sits only ~17px away center-to-center. */
+  .zero__dot::after {{
+    content: ""; position: absolute; top: 50%; left: 50%; width: 16px; height: 40px;
+    transform: translate(-50%, -50%);
+  }}
+  .zero__dot.is-active {{
+    background: var(--gold); transform: scale(1.7);
+    box-shadow: 0 0 0 4px rgba(232,185,35,0.18), 0 0 8px 1px rgba(232,185,35,0.5);
+  }}
 
   @media (max-width: 720px) {{
     .zero__grid {{
       flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start;
-      padding: 0.5rem 1.25rem 1rem; margin: 0 -1.25rem;
-      scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
+      padding: 0.5rem 9vw; margin: 0 -1.5rem;
+      scroll-snap-type: x mandatory; scroll-padding-inline: 9vw; touch-action: pan-x;
+      -webkit-overflow-scrolling: touch; scrollbar-width: none;
     }}
-    .zero-card {{ flex: 0 0 auto; width: 46vw; scroll-snap-align: center; }}
+    .zero__grid::-webkit-scrollbar {{ display: none; }}
+    /* No scroll-snap-stop here on purpose — forcing a stop at every single card made a
+       fast flick feel like it was fighting your thumb; letting momentum carry through
+       several cards at once reads as far more natural on a real phone. */
+    .zero-card {{ flex: 0 0 auto; width: 68vw; scroll-snap-align: center; }}
+    .zero__dots {{ display: flex; }}
   }}
 
   /* ---------- footer ---------- */
@@ -448,9 +527,15 @@ HTML = f"""<!doctype html>
 <main>
   <section class="hero">
     <div class="hero__glow" aria-hidden="true"></div>
-    <p class="hero__eyebrow">Taurina + Inositol · Energy Drink</p>
-    <h1 class="hero__title">8 sabores.<br><em>Uma energia.</em></h1>
-    <p class="hero__sub">Role a página para descobrir, um de cada vez, os 8 sabores da Baly — começando pelo Tradicional.</p>
+    <div class="hero__copy">
+      <p class="hero__eyebrow">Taurina + Inositol · Energy Drink</p>
+      <h1 class="hero__title">8 sabores.<br><em>Uma energia.</em></h1>
+      <span class="hero__divider" aria-hidden="true"></span>
+      <p class="hero__sub">Role a página para descobrir, um de cada vez, os 8 sabores da Baly — começando pelo Tradicional.</p>
+    </div>
+    <div class="hero__visual">
+      <img class="hero__can" src="data:image/png;base64,{HERO_CAN}" alt="Lata Baly Tradicional" loading="eager" draggable="false">
+    </div>
     <div class="hero__scroll">
       <span>Role para explorar</span>
       <span class="hero__scroll-line"></span>
@@ -496,8 +581,11 @@ HTML = f"""<!doctype html>
       A linha Baly Zero equilibra performance, estilo de vida e o sabor Baly de sempre —
       incluindo uma edição especial em parceria com Fernando &amp; Sorocaba.
     </p>
-    <div class="zero__grid">
+    <div class="zero__grid" id="zeroGrid">
 {zero_cards}
+    </div>
+    <div class="zero__dots" role="tablist" aria-label="Sabores Baly Zero">
+{zero_dots}
     </div>
   </section>
 
@@ -520,6 +608,44 @@ HTML = f"""<!doctype html>
 (function () {{
   var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var hasMotion = !!(window.Motion && window.Motion.scroll && window.Motion.animate);
+
+  // Baly Zero carousel (mobile only, per .zero__grid's own media query): keep the
+  // pagination dots synced to whichever card is snapped into view, and let a tap on a
+  // dot jump straight there. No-op visually on desktop, where the grid doesn't scroll
+  // and the dots stay hidden — so this always runs, independent of the Motion CDN.
+  (function () {{
+    var zeroGrid = document.getElementById('zeroGrid');
+    var zeroDots = Array.prototype.slice.call(document.querySelectorAll('.zero__dot'));
+    if (!zeroGrid || !zeroDots.length) return;
+
+    function zeroActiveIndex() {{
+      var card = zeroGrid.querySelector('.zero-card');
+      if (!card) return 0;
+      var gap = parseFloat(getComputedStyle(zeroGrid).columnGap) || 0;
+      var step = card.offsetWidth + gap;
+      return step > 0 ? Math.round(zeroGrid.scrollLeft / step) : 0;
+    }}
+    function syncZeroDots() {{
+      var idx = Math.max(0, Math.min(zeroDots.length - 1, zeroActiveIndex()));
+      zeroDots.forEach(function (d, i) {{ d.classList.toggle('is-active', i === idx); }});
+    }}
+    var ticking = false;
+    zeroGrid.addEventListener('scroll', function () {{
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(function () {{ syncZeroDots(); ticking = false; }});
+    }}, {{ passive: true }});
+    zeroDots.forEach(function (dot, i) {{
+      dot.addEventListener('click', function () {{
+        var card = zeroGrid.children[i];
+        if (!card) return;
+        var left = card.offsetLeft - (zeroGrid.clientWidth - card.offsetWidth) / 2;
+        zeroGrid.scrollTo({{ left: left, behavior: reduceMotion ? 'auto' : 'smooth' }});
+      }});
+    }});
+    window.addEventListener('resize', syncZeroDots);
+    syncZeroDots();
+  }})();
 
   var FLAVORS = [
 {flavor_js}
