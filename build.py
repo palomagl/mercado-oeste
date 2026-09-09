@@ -5,7 +5,7 @@ Mercado Oeste — experiência conceitual.
 Reaproveita o motor de scroll da base (palco fixo + painéis que fazem crossfade
 via Motion.scroll -> layoutPanels), trocando totalmente o conteudo: cada produto
 do mercado ganha seu proprio "momento visual" (cor de embalagem, palavra gigante,
-imagem protagonista), e depois vem a parte funcional (ofertas + carrinho + entrega).
+imagem protagonista), e depois vem a parte funcional (catálogo + carrinho + entrega).
 
 Gera um unico index.html, com as imagens reais dos assets embutidas em base64.
 """
@@ -20,7 +20,20 @@ def b64(name):
         return base64.b64encode(f.read()).decode("ascii")
 
 
-LOGO = b64("logomercadooeste.png.jpeg")  # 1080x1080 JPEG
+# A logo do Mercado Oeste (assets/logomercadooeste.png.jpeg) e um JPEG chapado
+# sobre branco puro — nao recorta limpo pra um hero escuro. Em vez de um card
+# branco, o lockup e remontado com a MESMA estrutura da marca (carrinho + wordmark
+# em dois tons de verde), nitido em qualquer fundo. A identidade nao muda.
+CART_SVG = (
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"'
+    ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    '<path d="M2.4 3.4h2.5l2.3 11.5a1.7 1.7 0 0 0 1.67 1.35h8.9a1.7 1.7 0 0 0 1.66-1.3L22 7.4H5.2"/>'
+    '<circle cx="9.6" cy="20" r="1.5"/><circle cx="17.6" cy="20" r="1.5"/></svg>'
+)
+LOCKUP = (
+    f'<span class="lockup__mark">{CART_SVG}</span>'
+    '<span class="lockup__word">Mercado <span>Oeste</span></span>'
+)
 
 # ---------------------------------------------------------------------------
 # Os 7 momentos do palco. bg = atmosfera da cena (cor predominante da embalagem);
@@ -82,7 +95,12 @@ PRODUCTS = [
 N = len(PRODUCTS)
 LAST_BG = PRODUCTS[-1]["bg"]
 
-# Catálogo da parte funcional (sem a fruteira). preço demonstrativo.
+# ---------------------------------------------------------------------------
+# Catálogo da seção "Meus Produtos" — parte funcional, FORA da experiência de
+# scroll. São os 6 produtos vendáveis das cenas (a fruteira fica só no palco)
+# MAIS os produtos que existem apenas no catálogo. Nenhum destes novos entra
+# na sequência cinematográfica nem ganha cena própria. preço demonstrativo.
+# ---------------------------------------------------------------------------
 SHOP = [
     dict(key="acucar", name="Açúcar Cristal Caravelas 5kg", price=19.90),
     dict(key="arroz",  name="Arroz Namorado 5kg",           price=28.90),
@@ -91,7 +109,28 @@ SHOP = [
     dict(key="oleo",   name="Óleo de Soja Liza 900ml",      price=7.49),
     dict(key="cafe",   name="Nescafé 100g",                 price=14.90),
 ]
-IMG_BY_KEY = {p["key"]: p["img"] for p in PRODUCTS}
+
+# produtos que só aparecem no catálogo (carregam a própria imagem)
+EXTRA = [
+    dict(key="massa_parafuso", img=b64("macarraoparafuso500gGalo.png"),
+         name="Massa Parafuso Galo 500g", price=4.49),
+    dict(key="massa_espaguete", img=b64("macarraoespaguete500gRenata.png"),
+         name="Massa Espaguete Renata 500g", price=4.29),
+    dict(key="ovos", img=b64("bandeijaovosbrancos20unidades.png"),
+         name="Ovos Brancos 20 unidades", price=17.90),
+    dict(key="coca", img=b64("cocacola2l.png"),
+         name="Coca-Cola 2L", price=9.90),
+    dict(key="agua", img=b64("aguasemgas5lcrystal.png"),
+         name="Água Crystal sem Gás 5L", price=6.90),
+    dict(key="detergente", img=b64("detergenteype500ml.png"),
+         name="Detergente Ypê 500ml", price=2.79),
+    dict(key="papel", img=b64("papelhigienico4rolos.png"),
+         name="Papel Higiênico 4 rolos", price=6.49),
+    dict(key="sabao", img=b64("sabaoempobrilhante1,6kg.png"),
+         name="Sabão em Pó Brilhante 1,6kg", price=12.90),
+]
+
+CATALOG = SHOP + EXTRA
 DELIVERY_FEE = 5.00
 
 
@@ -100,10 +139,10 @@ def brl(v):
 
 
 # Cada blob de imagem entra UMA vez, como custom property, e e reaproveitado
-# no palco, nos cards de oferta e no anel final (evita repetir base64 3x).
+# no palco, nos cards do catalogo e no anel final (evita repetir base64).
 img_vars = "\n".join(
     f'    --img-{p["key"]}: url("data:image/png;base64,{p["img"]}");'
-    for p in PRODUCTS
+    for p in PRODUCTS + EXTRA
 )
 
 
@@ -172,14 +211,14 @@ def shop_card_html(s, i):
         </figure>"""
 
 
-shop_cards = "\n".join(shop_card_html(s, i) for i, s in enumerate(SHOP))
+shop_cards = "\n".join(shop_card_html(s, i) for i, s in enumerate(CATALOG))
 
 product_js = ",\n".join(
     f'    {{ key:"{p["key"]}", bg:"{p["bg"]}", accent:"{p["accent"]}", scheme:"{p["scheme"]}" }}'
     for p in PRODUCTS
 )
-prices_js = ", ".join(f'{s["key"]}:{s["price"]:.2f}' for s in SHOP)
-names_js = ", ".join(f'{s["key"]}:"{s["name"]}"' for s in SHOP)
+prices_js = ", ".join(f'{s["key"]}:{s["price"]:.2f}' for s in CATALOG)
+names_js = ", ".join(f'{s["key"]}:"{s["name"]}"' for s in CATALOG)
 
 # ---------------------------------------------------------------------------
 CSS = r"""
@@ -243,18 +282,21 @@ __IMG_VARS__
     padding: 1rem clamp(1.25rem, 4vw, 3rem); pointer-events: none;
   }
   .wordmark {
-    display: inline-flex; align-items: center; gap: 0.5rem; pointer-events: auto;
-    font-family: var(--font-display); font-size: 1.05rem; letter-spacing: 0.06em;
-    color: var(--paper); text-transform: uppercase; text-decoration: none;
+    pointer-events: auto; text-decoration: none; font-size: 1rem;
     background: rgba(12,13,10,0.42); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
-    border-radius: 999px; padding: 0.45rem 0.95rem 0.4rem;
+    border-radius: 999px; padding: 0.5rem 1rem 0.45rem;
   }
-  .wordmark__cart {
-    display: inline-grid; place-items: center; width: 20px; height: 20px;
-    border-radius: 5px; background: var(--green); color: #fff; font-size: 0.7rem;
-    font-family: var(--font-body);
+
+  /* ---------- lockup da marca (carrinho + wordmark) ---------- */
+  .lockup {
+    display: inline-flex; align-items: center; gap: 0.5em;
+    font-family: var(--font-display); font-weight: 400; line-height: 1;
+    text-transform: uppercase; letter-spacing: 0.045em; white-space: nowrap;
   }
-  .wordmark__oeste { color: var(--green-bright); }
+  .lockup__mark { display: inline-flex; color: var(--green-bright); }
+  .lockup__mark svg { width: 1.3em; height: 1.3em; display: block; }
+  .lockup__word { color: var(--paper); }
+  .lockup__word span { color: var(--green-bright); }
 
   /* ---------- side dot nav ---------- */
   .dotnav {
@@ -294,58 +336,83 @@ __IMG_VARS__
   @media (max-width: 640px) { .cart-fab { padding: 0.7rem 1.05rem; font-size: 0.78rem; } }
   @media (prefers-reduced-motion: reduce) { .cart-fab.is-bump { animation: none; } }
 
-  /* ---------- hero ---------- */
+  /* ---------- hero: abertura cinematografica ---------- */
   .hero {
-    position: relative; min-height: 100vh; padding: 8rem clamp(1.5rem, 6vw, 5rem) 5rem;
+    position: relative; min-height: 100vh; overflow: hidden; isolation: isolate;
+    display: flex; align-items: center;
+    padding: clamp(6rem, 14vh, 9rem) clamp(1.5rem, 8vw, 7rem) clamp(8rem, 20vh, 12rem);
+    background: linear-gradient(180deg, #06120A 0%, #0A130C 46%, var(--graphite) 100%);
+  }
+  /* profundidade: dois focos de luz verde em planos diferentes + vinheta */
+  .hero__bg { position: absolute; inset: 0; z-index: -2; pointer-events: none; }
+  .hero__glow { position: absolute; border-radius: 50%; will-change: transform; }
+  .hero__glow--far {
+    top: -22%; right: -14%; width: min(74vw, 840px); aspect-ratio: 1;
+    background: radial-gradient(closest-side, rgba(31,162,76,0.38), transparent 70%);
+    animation: heroGlow 17s ease-in-out infinite;
+  }
+  .hero__glow--near {
+    bottom: -28%; left: -18%; width: min(56vw, 620px); aspect-ratio: 1;
+    background: radial-gradient(closest-side, rgba(55,199,102,0.18), transparent 66%);
+    animation: heroGlow 23s ease-in-out infinite reverse;
+  }
+  @keyframes heroGlow {
+    0%, 100% { transform: translate3d(0,0,0) scale(1); opacity: 0.82; }
+    50% { transform: translate3d(1.5%, 2.5%, 0) scale(1.09); opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) { .hero__glow { animation: none; } }
+  .hero::after {
+    content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background: radial-gradient(135% 92% at 50% 22%, transparent 36%, rgba(0,0,0,0.52) 100%);
+  }
+  /* rodape do hero: um calor que sobe do fundo, "prepara" a chegada da 1a cena
+     (acucar, creme) — mesmo principio de crossfade de cor do resto da experiencia */
+  .hero__fade {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 26vh; z-index: -1; pointer-events: none;
     background:
-      radial-gradient(120% 90% at 78% 18%, rgba(31,162,76,0.30), transparent 60%),
-      linear-gradient(180deg, #0A1A0F 0%, var(--graphite) 78%);
-    overflow: hidden;
-    display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
-    align-items: center; gap: clamp(1rem, 3vw, 3rem);
+      radial-gradient(60% 100% at 50% 100%, rgba(236,228,214,0.16), transparent 72%),
+      linear-gradient(to bottom, transparent, rgba(236,228,214,0.10));
   }
-  .hero__copy { position: relative; z-index: 2; }
+  .hero__inner { position: relative; z-index: 1; max-width: 64rem; }
   .hero__eyebrow {
-    font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.2em; text-transform: uppercase;
-    color: var(--green-bright); margin: 0 0 1.4rem;
-    display: inline-flex; align-items: center; gap: 0.6rem;
+    font-family: var(--font-mono); font-size: 0.8rem; letter-spacing: 0.24em; text-transform: uppercase;
+    color: var(--green-bright); margin: 0 0 1.1rem;
+    display: inline-flex; align-items: center; gap: 0.7rem;
   }
-  .hero__eyebrow::before { content: ""; width: 26px; height: 1px; background: var(--green-bright); display: inline-block; }
+  .hero__eyebrow::before { content: ""; width: 32px; height: 1px; background: currentColor; }
   .hero__title {
-    font-family: var(--font-display); font-weight: 400;
-    font-size: clamp(2.7rem, 6.4vw, 5.4rem); line-height: 1.0; margin: 0; color: var(--paper);
-    text-transform: uppercase; letter-spacing: 0.005em;
+    font-family: var(--font-display); font-weight: 400; margin: 0 0 1.7rem;
+    font-size: clamp(2.9rem, 9.4vw, 7.2rem); line-height: 1.02; letter-spacing: -0.005em;
+    text-transform: uppercase; color: var(--paper);
+    text-shadow: 0 16px 48px rgba(0,0,0,0.55);
   }
   .hero__title em { font-style: normal; color: var(--green-bright); }
-  .hero__divider { display: block; width: 54px; height: 3px; margin: 1.6rem 0; background: var(--green); border-radius: 999px; }
-  .hero__sub { max-width: 30rem; margin: 0; font-size: clamp(0.98rem, 1.4vw, 1.12rem); line-height: 1.6; color: var(--paper-dim); }
-  .hero__visual { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; }
-  .hero__logo {
-    width: min(78%, 400px); height: auto; border-radius: 28px;
-    box-shadow: 0 40px 80px -30px rgba(0,0,0,0.7);
-    animation: heroFloat 7s ease-in-out infinite;
+  .hero__sub {
+    max-width: 34rem; margin: 0; font-size: clamp(0.98rem, 1.35vw, 1.12rem);
+    line-height: 1.6; color: var(--paper-dim);
   }
-  @keyframes heroFloat { 0%,100% { transform: translateY(-6px); } 50% { transform: translateY(6px); } }
-  @media (prefers-reduced-motion: reduce) { .hero__logo { animation: none; } }
-  .hero__glow {
-    position: absolute; top: 46%; right: 4%; width: min(44vw, 520px); height: min(44vw, 520px);
-    transform: translateY(-50%); border-radius: 50%; pointer-events: none; z-index: 0;
-    background: radial-gradient(closest-side, rgba(55,199,102,0.22), transparent 72%);
+  .hero__cue {
+    position: absolute; left: 50%; bottom: clamp(1.75rem, 5vh, 3rem); transform: translateX(-50%); z-index: 2;
+    display: flex; flex-direction: column; align-items: center; gap: 0.65rem;
+    font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--paper-dim);
   }
-  .hero__scroll {
-    position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%); z-index: 2;
-    font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase;
-    color: var(--paper-dim); display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+  .hero__cue-line {
+    position: relative; width: 1px; height: 44px; overflow: hidden;
+    background: rgba(245,242,232,0.14);
   }
-  .hero__scroll-line { width: 1px; height: 34px; background: linear-gradient(to bottom, var(--green-bright), transparent); }
+  .hero__cue-line::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(to bottom, var(--green-bright), transparent);
+    animation: cueDrop 2s ease-in-out infinite;
+  }
+  @keyframes cueDrop { 0% { transform: translateY(-100%); } 55%, 100% { transform: translateY(100%); } }
+  @media (prefers-reduced-motion: reduce) { .hero__cue-line::after { animation: none; transform: none; } }
   @media (max-width: 860px) {
-    .hero { grid-template-columns: 1fr; text-align: center; padding: 7rem 1.5rem 6rem; }
-    .hero__eyebrow { justify-content: center; }
-    .hero__divider { margin-left: auto; margin-right: auto; }
-    .hero__sub { margin-left: auto; margin-right: auto; }
-    .hero__visual { margin-top: 2.4rem; order: -1; }
-    .hero__logo { width: min(64%, 260px); }
-    .hero__glow { top: 34%; right: 50%; transform: translate(50%, -50%); width: min(86vw, 420px); height: min(86vw, 420px); }
+    .hero { padding: 7rem 1.5rem 8.5rem; }
+    .hero__title { font-size: clamp(2.7rem, 13vw, 4.6rem); }
+    .hero__glow--far { top: -8%; right: -34%; }
+    .hero__glow--near { bottom: -34%; left: -34%; }
   }
 
   /* ---------- palco: crossfade fixo ---------- */
@@ -444,10 +511,7 @@ __IMG_VARS__
   @keyframes orbitFloat { 0%,100% { margin-top: -6px; } 50% { margin-top: 6px; } }
   @media (prefers-reduced-motion: reduce) { .finale__thumb { animation: none; } }
   .finale__core { position: relative; z-index: 2; max-width: 25rem; padding: 0 1rem; }
-  .finale__logo {
-    width: clamp(84px, 16vw, 132px); height: auto; border-radius: 22px; margin: 0 auto 1.6rem;
-    box-shadow: 0 24px 50px -18px rgba(0,0,0,0.7); display: block;
-  }
+  .finale__lockup { font-size: clamp(1.35rem, 3.2vw, 2.1rem); margin-bottom: clamp(1.4rem, 4vh, 2rem); }
   .finale__headline {
     font-family: var(--font-display); font-weight: 400; margin: 0 0 1.6rem;
     font-size: clamp(1.9rem, 5vw, 3.2rem); line-height: 1.02; color: var(--paper);
@@ -469,7 +533,7 @@ __IMG_VARS__
     .finale__headline { font-size: clamp(1.7rem, 7vw, 2.3rem); }
   }
 
-  /* ---------- ofertas ---------- */
+  /* ---------- meus produtos (catálogo) ---------- */
   .shop { position: relative; background: var(--graphite); padding: 5rem clamp(1.5rem, 6vw, 5rem) 5rem; }
   .shop__head { max-width: 60rem; margin: 0 auto 3rem; text-align: center; }
   .shop__eyebrow { font-family: var(--font-mono); font-size: 0.76rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--green-bright); margin: 0 0 0.9rem; }
@@ -641,8 +705,8 @@ __PRODUCT_JS__
   var NAMES = { __NAMES__ };
   var cs = getComputedStyle(document.documentElement);
   var IMG = {};
-  PRODUCTS.forEach(function (p) {
-    IMG[p.key] = cs.getPropertyValue('--img-' + p.key).trim();
+  Object.keys(NAMES).forEach(function (k) {
+    IMG[k] = cs.getPropertyValue('--img-' + k).trim();
   });
   var DELIVERY = 5.00;
 
@@ -889,7 +953,7 @@ HTML = f"""<!doctype html>
 </div>
 
 <header class="site-header">
-  <a class="wordmark" href="#top"><span class="wordmark__cart">🛒</span> Mercado <span class="wordmark__oeste">Oeste</span></a>
+  <a class="wordmark lockup" href="#top" aria-label="Mercado Oeste — início">{LOCKUP}</a>
 </header>
 
 <nav class="dotnav" aria-label="Navegação de produtos">
@@ -902,20 +966,20 @@ HTML = f"""<!doctype html>
 
 <main id="top">
   <section class="hero">
-    <div class="hero__glow" aria-hidden="true"></div>
-    <div class="hero__copy">
-      <p class="hero__eyebrow">Mercado Oeste · Supermercado</p>
+    <div class="hero__bg" aria-hidden="true">
+      <span class="hero__glow hero__glow--far"></span>
+      <span class="hero__glow hero__glow--near"></span>
+    </div>
+    <div class="hero__inner">
+      <p class="hero__eyebrow">Supermercado · entrega em casa</p>
       <h1 class="hero__title">O mercado que<br><em>vai até você.</em></h1>
-      <span class="hero__divider" aria-hidden="true"></span>
       <p class="hero__sub">Tudo o que você precisa, a poucos cliques. Role a página e conheça os produtos do Mercado Oeste, um de cada vez.</p>
     </div>
-    <div class="hero__visual">
-      <img class="hero__logo" src="data:image/jpeg;base64,{LOGO}" alt="Logo do Mercado Oeste" loading="eager" draggable="false">
-    </div>
-    <div class="hero__scroll">
+    <div class="hero__cue" aria-hidden="true">
       <span>Role para explorar</span>
-      <span class="hero__scroll-line"></span>
+      <span class="hero__cue-line"></span>
     </div>
+    <div class="hero__fade" aria-hidden="true"></div>
   </section>
 
   <div class="stage-wrap" id="stageWrap">
@@ -931,17 +995,17 @@ HTML = f"""<!doctype html>
 {finale_thumbs}
     </div>
     <div class="finale__core">
-      <img class="finale__logo" src="data:image/jpeg;base64,{LOGO}" alt="Mercado Oeste" data-reveal draggable="false">
+      <span class="lockup finale__lockup" data-reveal>{LOCKUP}</span>
       <h2 class="finale__headline" data-reveal>Tudo que você precisa.<em>Em um só lugar.</em></h2>
-      <a class="finale__cta" href="#ofertas" data-reveal>Ver produtos <span aria-hidden="true">→</span></a>
+      <a class="finale__cta" href="#meus-produtos" data-reveal>Ver produtos <span aria-hidden="true">→</span></a>
     </div>
   </section>
 
-  <section class="shop" id="ofertas">
+  <section class="shop" id="meus-produtos">
     <div class="shop__head">
-      <p class="shop__eyebrow" data-reveal>Ofertas</p>
-      <h2 class="shop__title" data-reveal>Ofertas do Mercado Oeste</h2>
-      <p class="shop__sub" data-reveal>Preços demonstrativos. Adicione ao carrinho e a gente entrega na sua casa.</p>
+      <p class="shop__eyebrow" data-reveal>Catálogo</p>
+      <h2 class="shop__title" data-reveal>Meus produtos</h2>
+      <p class="shop__sub" data-reveal>O catálogo do Mercado Oeste. Preços demonstrativos — adicione ao carrinho e a gente entrega na sua casa.</p>
     </div>
     <div class="shop__grid">
 {shop_cards}

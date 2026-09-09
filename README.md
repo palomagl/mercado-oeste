@@ -12,10 +12,14 @@ apresentação dos produtos, e não por um e-commerce genérico.
 
 A primeira metade da página é a experiência de marca: cada produto entra em cena durante o scroll,
 fica grande na tela, ganha sua própria atmosfera de cor (puxada da embalagem) e depois dá lugar
-ao próximo. A segunda metade mostra como isso viraria uma compra de verdade — ofertas, carrinho
+ao próximo. A segunda metade mostra como isso viraria uma compra de verdade — catálogo, carrinho
 e entrega em casa.
 
-`INTRO` → `AÇÚCAR` → `ARROZ` → `FEIJÃO` → `FRUTEIRA` → `LEITE` → `ÓLEO` → `CAFÉ` → `TRANSIÇÃO FINAL` → `OFERTAS` → `ENTREGA`
+`INTRO` → `AÇÚCAR` → `ARROZ` → `FEIJÃO` → `FRUTEIRA` → `LEITE` → `ÓLEO` → `CAFÉ` → `TRANSIÇÃO FINAL` → `MEUS PRODUTOS` → `ENTREGA`
+
+**Só estes 7 produtos participam do scroll cinematográfico.** A seção "Meus produtos" é a parte
+funcional (catálogo): os 6 vendáveis das cenas + itens que existem apenas no catálogo
+(massas, ovos, Coca-Cola, água). Produtos novos entram só aqui — nunca no scroll.
 
 ---
 
