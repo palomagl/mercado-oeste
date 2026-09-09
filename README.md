@@ -1,66 +1,56 @@
-# Baly Sabores
+# Mercado Oeste
 
-**Landing page conceitual para uma experiência de produto mais imersiva.**
-
-![Baly Sabores — Landing Page](assets/landingpage.png)
+**Experiência conceitual para um supermercado de bairro — uma apresentação visual dos principais produtos, com scroll cinematográfico.**
 
 ---
 
 ## Sobre
 
-**Baly Sabores** é um projeto conceitual e não oficial desenvolvido para explorar uma abordagem mais visual e interativa para apresentação de produtos.
+**Mercado Oeste** é um projeto conceitual e não oficial: um supermercado tradicional transformado
+em uma experiência digital moderna. A ideia é o usuário sentir que está navegando por uma
+apresentação dos produtos, e não por um e-commerce genérico.
 
-A ideia foi transformar a navegação em uma experiência contínua, onde cada sabor possui seu próprio momento visual e a transição entre eles acontece através do scroll.
+A primeira metade da página é a experiência de marca: cada produto entra em cena durante o scroll,
+fica grande na tela, ganha sua própria atmosfera de cor (puxada da embalagem) e depois dá lugar
+ao próximo. A segunda metade mostra como isso viraria uma compra de verdade — ofertas, carrinho
+e entrega em casa.
 
-![Baly Sabores — Experiência](assets/zeroacucar.png)
-
----
-
-## A experiência
-
-A landing page foi estruturada como uma sequência de momentos:
-
-`INTRO` → `TRADICIONAL` → `SABORES` → `A BALY` → `BALY ZERO` → `CTA`
-
-Cada etapa altera a composição da tela, criando novas combinações de produto, tipografia, cor e movimento.
-
-O objetivo não foi criar apenas uma página para mostrar produtos, mas uma experiência que **mantém o usuário explorando a página**.
+`INTRO` → `AÇÚCAR` → `ARROZ` → `FEIJÃO` → `FRUTEIRA` → `LEITE` → `ÓLEO` → `CAFÉ` → `TRANSIÇÃO FINAL` → `OFERTAS` → `ENTREGA`
 
 ---
 
-## Direção visual
+## Identidade
 
-A interface trabalha com:
-
-**Produtos em destaque**
-As embalagens são o principal elemento visual da composição.
-
-**Cores por sabor**
-Cada produto possui uma atmosfera própria para criar diferenciação ao longo da navegação.
-
-**Movimento**
-Transições e animações acompanham o scroll para criar continuidade entre as seções.
-
-**Composição**
-Elementos são posicionados para criar profundidade e direcionar a atenção para o produto.
+- Verde e verde escuro como identidade da marca e da navegação/UI.
+- Branco e o carrinho de supermercado (logo).
+- Cada produto tem seu "momento visual" próprio — açúcar branco/vermelho, arroz azul/branco,
+  feijão escuro, fruteira verde/natural, leite amarelo/creme, óleo dourado, café vermelho/marrom.
+  As transições entre esses climas são feitas por crossfade + blur ligado ao scroll, nunca por
+  troca brusca de fundo.
 
 ---
 
-## O resultado
+## Como funciona
 
-Uma landing page com uma abordagem mais próxima de uma **experiência de campanha digital** do que de uma página tradicional de produtos.
+Página única, autossuficiente. Tudo é gerado por [`build.py`](build.py), que embute as imagens
+reais dos produtos (`assets/`, exatamente como estão, sem processamento) e escreve o `index.html`.
 
-O projeto foi desenvolvido para explorar principalmente:
+```
+python build.py
+```
 
-**Direção de arte · Product presentation · Motion · Scrollytelling · Interactive design · Responsive design**
+O motor de scroll é o mesmo padrão de "palco fixo": um bloco alto (`7 × 100vh`), um `sticky`
+que ocupa a viewport, e painéis sobrepostos cujo `opacity`/`blur`/`scale` são controlados pelo
+progresso do scroll (`Motion.scroll` → `layoutPanels`). Sem JavaScript, os painéis empilham e
+tudo continua legível.
+
+O carrinho é apenas demonstrativo (sem back-end): estado em memória, taxa de entrega fixa de
+R$ 5,00, valores ilustrativos.
 
 ---
 
 ## Projeto conceitual
 
-Este projeto **não possui vínculo oficial com a Baly Brasil** e foi desenvolvido exclusivamente para fins de estudo, experimentação e portfólio.
-
----
-
-**Paloma Garcia Lorenzon**
-Design & Front-end
+**Mercado Oeste é uma marca fictícia.** Nomes de produtos aparecem apenas de forma ilustrativa
+e os preços são demonstrativos. Projeto feito para estudo de direção de arte, motion,
+scrollytelling e design de interação.
