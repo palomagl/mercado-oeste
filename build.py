@@ -9,7 +9,7 @@ imagem protagonista), e depois vem a parte funcional (catálogo + carrinho + ent
 
 Gera um unico index.html, com as imagens reais dos assets embutidas em base64.
 """
-import base64, math, os
+import base64, math, os, random
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 ASSETS = os.path.join(ROOT, "assets")
@@ -35,6 +35,28 @@ LOCKUP = (
     '<span class="lockup__word">Mercado <span>Oeste</span></span>'
 )
 
+# Icones do hero claro (traco, herdam currentColor). Inline pra nao depender de rede.
+def _svg(*paths):
+    return ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"'
+            ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+            + "".join(paths) + '</svg>')
+
+ICON = {
+    "arrow": _svg('<path d="M5 12h14M13 6l6 6-6 6"/>'),
+    "shield": _svg('<path d="M12 3l7 3v5c0 5-3.5 8-7 9-3.5-1-7-4-7-9V6l7-3z"/>',
+                   '<path d="M9 12l2 2 4-4"/>'),
+    "truck": _svg('<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z"/>',
+                  '<circle cx="7" cy="18" r="1.6"/><circle cx="17.5" cy="18" r="1.6"/>'),
+    "card": _svg('<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/>'),
+    "receipt": _svg('<path d="M6 3h12v17l-3-1.6L12 20l-3-1.6L6 20z"/>', '<path d="M9.5 8h5M9.5 11.5h5"/>'),
+    "cart": _svg('<path d="M3 4h2l2.4 11.5A1.7 1.7 0 0 0 9 17h8.5a1.7 1.7 0 0 0 1.65-1.3L21 8H6"/>',
+                 '<circle cx="9.5" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/>'),
+    "bottle": _svg('<path d="M9 8h5l1.5 3v9a1 1 0 0 1-1 1H8.5a1 1 0 0 1-1-1v-9L9 8z"/>',
+                   '<path d="M10 8V5h3M13 5l3-1M13 5l3 1"/>'),
+    "snow": _svg('<path d="M12 3v18M4.5 7l15 10M19.5 7l-15 10"/>'),
+    "spark": _svg('<path d="M12 4l1.8 4.2L18 10l-4.2 1.8L12 16l-1.8-4.2L6 10l4.2-1.8z"/>'),
+}
+
 # ---------------------------------------------------------------------------
 # Os 7 momentos do palco, NA ORDEM do scroll:
 #   arroz -> feijao -> acucar -> cafe -> oleo -> leite -> hortifruti
@@ -48,12 +70,12 @@ PRODUCTS = [
         key="arroz", img=b64("arroz-namorado-5kg-cut.png"),
         word="ARROZ", title="Arroz Namorado 5kg",
         desc="Aquele básico que não pode faltar.",
-        price="R$ 28,90", bg="#123C72", scheme="light",
-        accent="#F2C14E", entry="slide",
+        price="R$ 28,90", bg="#0E2E58", scheme="light",
+        accent="#F2C14E", entry="rise",
     ),
     dict(
         key="feijao", img=b64("feijao-camil-1kg-cut.png"),
-        word="FEIJÃO", title="Camil Carioca 1kg",
+        word="FEIJÃO", title="Feijão Preto Camil 1kg",
         desc="Para completar a mesa.",
         price="R$ 8,49", bg="#1A1620", scheme="light",
         accent="#D8402F", entry="rise",
@@ -95,6 +117,31 @@ PRODUCTS = [
     ),
 ]
 
+# ---------------------------------------------------------------------------
+# Tratamento cinematográfico por cena. SÓ camadas decorativas (atmosfera, luz,
+# grãos/folhas/partículas ao redor) — a imagem do produto nunca muda. Cada
+# chave diz quantos elementos a cena espalha; as cores de cada atmosfera moram
+# no CSS, casadas por [data-key]. Por enquanto só ARROZ está ligado.
+# ---------------------------------------------------------------------------
+SCENES = {
+    # ratio = faixa de (altura/largura) do grao: arroz alongado, feijao/cafe
+    # rechonchudo, cristais/gotas quase redondos.
+    "arroz": dict(grains_back=22, grains_front=10, pile=20, streaks=3,
+                  leaves=7, leaves_upper=2, motes=26, ratio=(3.0, 4.2)),
+    "feijao": dict(grains_back=20, grains_front=9, pile=18, streaks=2,
+                   leaves=2, leaves_upper=0, motes=20, ratio=(1.2, 1.6)),
+    "acucar": dict(grains_back=26, grains_front=13, pile=16, streaks=0,
+                   leaves=0, leaves_upper=0, motes=32, ratio=(1.0, 1.4)),
+    "cafe": dict(grains_back=20, grains_front=9, pile=18, streaks=2,
+                 leaves=0, leaves_upper=0, motes=22, ratio=(1.3, 1.8)),
+    "oleo": dict(grains_back=16, grains_front=10, pile=10, streaks=4,
+                 leaves=0, leaves_upper=0, motes=26, ratio=(1.0, 1.25)),
+    "leite": dict(grains_back=14, grains_front=10, pile=8, streaks=3,
+                  leaves=0, leaves_upper=0, motes=34, ratio=(1.0, 1.2)),
+    "fruteira": dict(grains_back=6, grains_front=4, pile=6, streaks=0,
+                     leaves=13, leaves_upper=4, motes=24, ratio=(1.8, 2.6)),
+}
+
 N = len(PRODUCTS)
 LAST_BG = PRODUCTS[-1]["bg"]
 
@@ -107,7 +154,7 @@ LAST_BG = PRODUCTS[-1]["bg"]
 SHOP = [
     dict(key="acucar", name="Açúcar Cristal Caravelas 5kg", price=19.90),
     dict(key="arroz",  name="Arroz Namorado 5kg",           price=28.90),
-    dict(key="feijao", name="Feijão Camil 1kg",             price=8.49),
+    dict(key="feijao", name="Feijão Preto Camil 1kg",       price=8.49),
     dict(key="leite",  name="Leite Ninho 1L",               price=6.99),
     dict(key="oleo",   name="Óleo de Soja Liza 900ml",      price=7.49),
     dict(key="cafe",   name="Nescafé 100g",                 price=14.90),
@@ -141,15 +188,133 @@ def brl(v):
     return ("R$ " + f"{v:,.2f}").replace(",", "@").replace(".", ",").replace("@", ".")
 
 
+# Foto do hero (Pexels, licenca livre): entregador com as sacolas de compras,
+# luz lateral quente. Usada so como imagem, tratada por cima com CSS pra casar
+# com o clima escuro do resto do site. Nao e recortada.
+HERO_IMG = b64("hero-delivery.jpg")
+
+# Logo real do cliente: assets/logo-mercado-oeste.png e a MESMA logo original,
+# so com o fundo branco removido (knockout mecanico, arte 100% intacta) pra
+# funcionar sobre fundo escuro. Sem card branco, sem 3D, sem redesenho.
+LOGO_IMG = b64("logo-mercado-oeste.png")
+
+# No catalogo "Meus produtos" todos os cards usam a foto com FUNDO BRANCO. Os 6
+# produtos que tambem aparecem no scroll usam la a versao -cut (transparente);
+# aqui no catalogo trocamos pela embalagem original (fundo branco) pra ficar tudo
+# consistente. Os produtos so-de-catalogo ja vem com fundo branco.
+SHOP_CAT_IMG = {
+    "acucar": "acucar5kg-caravelas.png",
+    "arroz":  "arroz-namorado-5kg.png",
+    "feijao": "feijao-camil-1kg.png",
+    "leite":  "leite1l-ninho.png",
+    "oleo":   "oleodesoja900ml-leve.png",
+    "cafe":   "vidrodecafe100g-nescafe.png",
+}
+
 # Cada blob de imagem entra UMA vez, como custom property, e e reaproveitado
 # no palco, nos cards do catalogo e no anel final (evita repetir base64).
 img_vars = "\n".join(
-    f'    --img-{p["key"]}: url("data:image/png;base64,{p["img"]}");'
-    for p in PRODUCTS + EXTRA
+    [f'    --img-{p["key"]}: url("data:image/png;base64,{p["img"]}");'
+     for p in PRODUCTS + EXTRA]
+    + [f'    --img-{k}-cat: url("data:image/png;base64,{b64(v)}");'
+       for k, v in SHOP_CAT_IMG.items()]
 )
 
 
 # ---------- construtores de markup ----------
+
+def scatter_scene(key, cfg):
+    """Espalha graos / folhas / particulas de uma cena, ao redor do produto.
+    Deterministico (seed por produto) pra nao poluir o diff a cada build.
+    Retorna (camada_de_tras, camada_da_frente) ja como <div> prontos."""
+    r = random.Random("mercado-oeste::scene::" + key)
+    far, near = [], []
+    cx, cy = 50.0, 51.0
+    rlo, rhi = cfg.get("ratio", (3.0, 4.2))   # faixa altura/largura do grao
+
+    def span(cls, x, y, vs):
+        x = max(3.0, min(97.0, x)); y = max(4.0, min(96.0, y))
+        style = f"left:{x:.1f}%;top:{y:.1f}%;" + "".join(f"--{k}:{v};" for k, v in vs)
+        return f'<span class="{cls}" style="{style}"></span>'
+
+    def drift():
+        return [
+            ("r", f"{r.uniform(-75, 75):.0f}deg"),
+            ("dur", f"{r.uniform(5.5, 9.5):.1f}s"),
+            ("delay", f"-{r.uniform(0, 9):.1f}s"),
+            ("dx", f"{r.uniform(-7, 7):.0f}px"),
+            ("dy", f"{-r.uniform(4, 13):.0f}px"),
+            ("dr", f"{r.uniform(-10, 10):.0f}deg"),
+        ]
+
+    # graos finos no anel ao redor do produto, atras (alguns desfocados = profundidade)
+    for _ in range(cfg["grains_back"]):
+        ang = r.uniform(0, 2 * math.pi); rad = r.uniform(14, 42)
+        x = cx + rad * math.cos(ang) * 1.28
+        y = cy + rad * math.sin(ang)
+        if x < 28 and y > 58:          # abre espaco pro texto da esquerda
+            x += 20
+        soft = r.random() < 0.30
+        w = r.uniform(6, 10) if soft else r.uniform(2.6, 4.8)
+        vs = [("w", f"{w:.1f}px"), ("h", f"{w * r.uniform(rlo, rhi):.1f}px"),
+              ("o", f"{r.uniform(0.24, 0.55):.2f}"),
+              ("b", f"{r.uniform(1.6, 3.0):.1f}px" if soft else f"{r.uniform(0, 0.5):.1f}px")]
+        far.append(span("grain", x, y, vs + drift()))
+
+    # graos em primeiro plano (bokeh), na frente do produto, espalhados pras bordas
+    for _ in range(cfg["grains_front"]):
+        ang = r.uniform(0, 2 * math.pi); rad = r.uniform(34, 66)
+        x = cx + rad * math.cos(ang) * 1.35
+        y = cy + rad * math.sin(ang) * 1.05
+        w = r.uniform(4, 7.5)
+        vs = [("w", f"{w:.1f}px"), ("h", f"{w * r.uniform(rlo, rhi):.1f}px"),
+              ("o", f"{r.uniform(0.35, 0.62):.2f}"), ("b", f"{r.uniform(0.6, 1.6):.1f}px")]
+        near.append(span("grain", x, y, vs + drift()))
+
+    # rastros de graos caindo (motion blur) — dao a sensacao de movimento
+    for _ in range(cfg.get("streaks", 0)):
+        x = 50 + r.uniform(-30, 30); y = r.uniform(16, 70)
+        vs = [("w", "2px"), ("h", f"{r.uniform(26, 46):.0f}px"),
+              ("o", f"{r.uniform(0.12, 0.26):.2f}"), ("b", f"{r.uniform(2.2, 3.8):.1f}px"),
+              ("r", f"{r.uniform(-10, 10):.0f}deg")]
+        far.append(span("grain", x, y, vs + drift()))
+
+    # montinho de graos na base do produto (cluster apertado, bem visivel)
+    for j in range(cfg["pile"]):
+        x = 50 + r.gauss(0, 10); y = 88 + r.uniform(-4, 6)
+        w = r.uniform(3.4, 6.0)
+        vs = [("w", f"{w:.1f}px"), ("h", f"{w * r.uniform(rlo, rhi):.1f}px"),
+              ("o", f"{r.uniform(0.6, 0.92):.2f}"), ("b", f"{r.uniform(0, 0.5):.1f}px")]
+        (far if j % 3 == 0 else near).append(span("grain", x, y, vs + drift()))
+
+    # folhas (plantinha de arroz): flanqueando o produto pra ficarem visiveis
+    for k in range(cfg["leaves"]):
+        upper = k < cfg.get("leaves_upper", 1)
+        left = k % 2 == 0
+        x = (r.uniform(16, 32) if left else r.uniform(68, 84))
+        y = r.uniform(14, 30) if upper else r.uniform(66, 86)
+        w = r.uniform(36, 60) if not upper else r.uniform(24, 38)
+        vs = [("w", f"{w:.0f}px"), ("h", f"{max(5.0, w * r.uniform(0.15, 0.22)):.0f}px"),
+              ("o", f"{r.uniform(0.34, 0.55):.2f}"),
+              ("r", f"{(r.uniform(12, 44) if left else r.uniform(-44, -12)):.0f}deg"),
+              ("dur", f"{r.uniform(7, 11):.1f}s"), ("delay", f"-{r.uniform(0, 8):.1f}s"),
+              ("dx", f"{r.uniform(-5, 5):.0f}px"), ("dy", f"{-r.uniform(3, 8):.0f}px"),
+              ("dr", f"{r.uniform(-6, 6):.0f}deg")]
+        (far if (not upper and k % 2 == 0) else near).append(span("leaf", x, y, vs))
+
+    # poeira / particulas muito discretas, no fundo
+    for _ in range(cfg["motes"]):
+        x = r.uniform(5, 95); y = r.uniform(6, 94); w = r.uniform(1.4, 3.2)
+        vs = [("w", f"{w:.1f}px"), ("o", f"{r.uniform(0.07, 0.22):.2f}"),
+              ("b", f"{r.uniform(0.3, 1.0):.1f}px")]
+        far.append(span("mote", x, y, vs + drift()))
+
+    pad = "          "
+    return (pad + '<div class="panel__props panel__props--far" aria-hidden="true">'
+            + "".join(far) + "</div>",
+            pad + '<div class="panel__props panel__props--near" aria-hidden="true">'
+            + "".join(near) + "</div>")
+
 
 def panel_html(p, i):
     word = p["word"].replace("\n", "<br>")
@@ -161,16 +326,51 @@ def panel_html(p, i):
             f'<button class="panel__buy" type="button" data-add="{p["key"]}">'
             f'Quero comprar <span aria-hidden="true">→</span></button>'
         )
+    eyebrow = (f'<p class="panel__eyebrow">Produto {i+1:02d} '
+               f'<span aria-hidden="true">/</span> {N:02d}</p>')
+
+    scene = SCENES.get(p["key"])
+    if scene:
+        far, near = scatter_scene(p["key"], scene)
+        return f"""
+      <article class="panel panel--scene scheme-{p['scheme']}" data-panel="{i}"
+        data-entry="{p['entry']}" data-key="{p['key']}"
+        style="background:{p['bg']};--accent:{p['accent']};">
+        <div class="panel__atmos" aria-hidden="true">
+          <span class="panel__beam"></span>
+          <span class="panel__floor"></span>
+        </div>
+        <h2 class="panel__word" aria-hidden="true">{word}</h2>
+        <div class="panel__stage">
+          <span class="panel__glow" aria-hidden="true"></span>
+{far}
+          <div class="panel__hero">
+            <span class="panel__shadow" aria-hidden="true"></span>
+            <div class="panel__img" role="img" aria-label="{p['title']}"
+              style="background-image:var(--img-{p['key']})"></div>
+            <div class="panel__img panel__img--mirror" aria-hidden="true"
+              style="background-image:var(--img-{p['key']})"></div>
+          </div>
+{near}
+        </div>
+        <div class="panel__meta">
+          {eyebrow}
+          <h3 class="panel__title">{p['title']}</h3>
+          <p class="panel__desc">{p['desc']}</p>
+          {action}
+        </div>
+      </article>"""
+
     return f"""
       <article class="panel scheme-{p['scheme']}" data-panel="{i}" data-entry="{p['entry']}"
-        style="background:{p['bg']};--accent:{p['accent']};">
+        data-key="{p['key']}" style="background:{p['bg']};--accent:{p['accent']};">
         <h2 class="panel__word" aria-hidden="true">{word}</h2>
         <div class="panel__stage">
           <div class="panel__img" role="img" aria-label="{p['title']}"
             style="background-image:var(--img-{p['key']})"></div>
         </div>
         <div class="panel__meta">
-          <p class="panel__eyebrow">Produto {i+1:02d} <span aria-hidden="true">/</span> {N:02d}</p>
+          {eyebrow}
           <h3 class="panel__title">{p['title']}</h3>
           <p class="panel__desc">{p['desc']}</p>
           {action}
@@ -188,25 +388,13 @@ dots = "\n".join(
     for i, p in enumerate(PRODUCTS)
 )
 
-# anel de produtos ao redor da logo, na grande transição final.
-# offset de meio passo -> nenhum produto cai exatamente em cima do texto central.
-finale_thumbs = []
-for i, p in enumerate(PRODUCTS):
-    a = -math.pi / 2 + math.pi / N + i * 2 * math.pi / N
-    x = 50 + 40 * math.cos(a)
-    y = 50 + 40 * math.sin(a)
-    finale_thumbs.append(
-        f'      <span class="finale__thumb" data-reveal="orbit" aria-hidden="true"'
-        f' style="left:{x:.2f}%;top:{y:.2f}%;--d:{i};background-image:var(--img-{p["key"]})"></span>'
-    )
-finale_thumbs = "\n".join(finale_thumbs)
-
-
 def shop_card_html(s, i):
+    # catalogo sempre com a foto de fundo branco (versao -cat quando existe)
+    img_var = f"--img-{s['key']}-cat" if s["key"] in SHOP_CAT_IMG else f"--img-{s['key']}"
     return f"""
         <figure class="card" data-reveal="card" style="--card-delay:{i};">
           <div class="card__media" role="img" aria-label="{s['name']}"
-            style="background-image:var(--img-{s['key']})"></div>
+            style="background-image:var({img_var})"></div>
           <figcaption class="card__body">
             <span class="card__name">{s['name']}</span>
             <span class="card__price">{brl(s['price'])}</span>
@@ -239,7 +427,9 @@ CSS = r"""
     --font-display: "Anton", "Arial Narrow", sans-serif;
     --font-body: "Manrope", "Segoe UI", sans-serif;
     --font-mono: "JetBrains Mono", "SFMono-Regular", monospace;
+    --font-hand: "Caveat", "Segoe Script", cursive;
     color-scheme: dark;
+    --img-hero: url("data:image/jpeg;base64,__HERO_IMG__");
 __IMG_VARS__
   }
 
@@ -285,11 +475,13 @@ __IMG_VARS__
     display: flex; align-items: center; justify-content: space-between;
     padding: 1rem clamp(1.25rem, 4vw, 3rem); pointer-events: none;
   }
-  .wordmark {
-    pointer-events: auto; text-decoration: none; font-size: 1rem;
-    background: rgba(12,13,10,0.42); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
-    border-radius: 999px; padding: 0.5rem 1rem 0.45rem;
+  .wordmark { pointer-events: auto; text-decoration: none; display: block; line-height: 0; }
+  .wordmark__img {
+    height: clamp(48px, 5.5vw, 62px); width: auto; display: block;
+    /* leve separacao da arte sobre fundo escuro, sem virar "efeito" */
+    filter: drop-shadow(0 2px 5px rgba(0,0,0,0.6)) drop-shadow(0 0 4px rgba(190,235,195,0.14));
   }
+  @media (max-width: 640px) { .wordmark__img { height: 46px; } }
 
   /* ---------- lockup da marca (carrinho + wordmark) ---------- */
   .lockup {
@@ -340,81 +532,138 @@ __IMG_VARS__
   @media (max-width: 640px) { .cart-fab { padding: 0.7rem 1.05rem; font-size: 0.78rem; } }
   @media (prefers-reduced-motion: reduce) { .cart-fab.is-bump { animation: none; } }
 
-  /* ---------- hero: abertura cinematografica ---------- */
+  /* ---------- hero: abertura escura + entregador ---------- */
   .hero {
     position: relative; min-height: 100vh; overflow: hidden; isolation: isolate;
-    display: flex; align-items: center;
-    padding: clamp(6rem, 14vh, 9rem) clamp(1.5rem, 8vw, 7rem) clamp(8rem, 20vh, 12rem);
-    background: linear-gradient(180deg, #06120A 0%, #0A130C 46%, var(--graphite) 100%);
-  }
-  /* profundidade: dois focos de luz verde em planos diferentes + vinheta */
-  .hero__bg { position: absolute; inset: 0; z-index: -2; pointer-events: none; }
-  .hero__glow { position: absolute; border-radius: 50%; will-change: transform; }
-  .hero__glow--far {
-    top: -22%; right: -14%; width: min(74vw, 840px); aspect-ratio: 1;
-    background: radial-gradient(closest-side, rgba(31,162,76,0.38), transparent 70%);
-    animation: heroGlow 17s ease-in-out infinite;
-  }
-  .hero__glow--near {
-    bottom: -28%; left: -18%; width: min(56vw, 620px); aspect-ratio: 1;
-    background: radial-gradient(closest-side, rgba(55,199,102,0.18), transparent 66%);
-    animation: heroGlow 23s ease-in-out infinite reverse;
-  }
-  @keyframes heroGlow {
-    0%, 100% { transform: translate3d(0,0,0) scale(1); opacity: 0.82; }
-    50% { transform: translate3d(1.5%, 2.5%, 0) scale(1.09); opacity: 1; }
-  }
-  @media (prefers-reduced-motion: reduce) { .hero__glow { animation: none; } }
-  .hero::after {
-    content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
-    background: radial-gradient(135% 92% at 50% 22%, transparent 36%, rgba(0,0,0,0.52) 100%);
-  }
-  /* rodape do hero: um calor que sobe do fundo, "prepara" a chegada da 1a cena
-     (acucar, creme) — mesmo principio de crossfade de cor do resto da experiencia */
-  .hero__fade {
-    position: absolute; left: 0; right: 0; bottom: 0; height: 26vh; z-index: -1; pointer-events: none;
+    display: grid; align-items: center;
+    grid-template-columns: minmax(0, 1.04fr) minmax(0, 0.96fr);
+    gap: clamp(1.5rem, 4vw, 3rem);
+    padding: clamp(5.5rem, 12vh, 8rem) clamp(1.5rem, 7vw, 6rem) clamp(4.5rem, 10vh, 7rem);
     background:
-      radial-gradient(60% 100% at 50% 100%, rgba(236,228,214,0.16), transparent 72%),
-      linear-gradient(to bottom, transparent, rgba(236,228,214,0.10));
+      radial-gradient(88% 68% at 74% 24%, rgba(31,120,60,0.34), transparent 62%),
+      radial-gradient(80% 90% at 6% 90%, rgba(20,70,38,0.28), transparent 60%),
+      linear-gradient(180deg, #0A1A0F 0%, #08130B 55%, var(--graphite) 100%);
+    color: var(--paper); font-family: var(--font-body);
   }
-  .hero__inner { position: relative; z-index: 1; max-width: 64rem; }
+  /* folhas soltas flutuando (mesma linguagem visual das cenas do scroll) */
+  .hero__leaf {
+    position: absolute; z-index: 1; width: var(--w, 34px); height: calc(var(--w, 34px) * 0.4);
+    background: linear-gradient(120deg, transparent, rgba(120,210,110,0.5) 45%, transparent);
+    border-radius: 0 100% 0 100% / 0 100% 0 100%;
+    filter: blur(0.5px); opacity: 0.5;
+    animation: heroLeaf var(--dur, 11s) ease-in-out infinite; animation-delay: var(--delay, 0s);
+  }
+  @keyframes heroLeaf {
+    0%, 100% { transform: translate3d(0,0,0) rotate(var(--r, 0deg)); }
+    50%      { transform: translate3d(-14px, 18px, 0) rotate(calc(var(--r, 0deg) + 22deg)); }
+  }
+  @media (prefers-reduced-motion: reduce) { .hero__leaf { animation: none; } }
+
+  /* foto do entregador: entra pela direita e dissolve no fundo escuro */
+  .hero__media { position: absolute; inset: 0 0 0 auto; width: min(56%, 880px); z-index: 0; pointer-events: none; }
+  .hero__photo {
+    position: absolute; inset: 0;
+    background-image: var(--img-hero); background-size: cover; background-position: 44% 30%;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 30%);
+            mask-image: linear-gradient(to right, transparent 0%, #000 30%);
+  }
+  .hero__media::after {
+    content: ""; position: absolute; inset: 0;
+    background:
+      linear-gradient(100deg, rgba(8,19,11,0.92), rgba(8,19,11,0.32) 34%, transparent 66%),
+      linear-gradient(to bottom, rgba(8,19,11,0.42), transparent 24%, transparent 70%, rgba(8,19,11,0.8));
+  }
+  .hero__inner { position: relative; z-index: 2; max-width: 40rem; }
+
   .hero__eyebrow {
-    font-family: var(--font-mono); font-size: 0.8rem; letter-spacing: 0.24em; text-transform: uppercase;
-    color: var(--green-bright); margin: 0 0 1.1rem;
+    font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--green-bright); font-weight: 600; margin: 0 0 1.3rem;
     display: inline-flex; align-items: center; gap: 0.7rem;
   }
-  .hero__eyebrow::before { content: ""; width: 32px; height: 1px; background: currentColor; }
-  /* MERCADO OESTE grande, protagonista — o lockup da marca virando titulo */
+  .hero__eyebrow::before { content: ""; width: 34px; height: 2px; border-radius: 2px; background: var(--green-bright); }
+
   .hero__brand {
-    font-size: clamp(2.1rem, 9vw, 6rem); gap: 0.42em; margin: 0 0 1.5rem;
-    align-items: center; flex-wrap: wrap; letter-spacing: 0.02em;
-    text-shadow: 0 18px 50px rgba(0,0,0,0.6), 0 0 40px rgba(55,199,102,0.12);
+    font-family: var(--font-body); font-weight: 800; text-transform: uppercase;
+    font-size: clamp(2.6rem, 7.8vw, 5.8rem); line-height: 0.88; letter-spacing: -0.028em;
+    margin: 0 0 1.3rem; text-shadow: 0 20px 60px rgba(0,0,0,0.5);
   }
-  .hero__brand .lockup__mark { color: var(--green-bright); }
-  .hero__brand .lockup__mark svg { width: 1.15em; height: 1.15em; }
-  /* dois tons de verde da identidade: MERCADO mais claro, OESTE mais saturado */
-  .hero__brand .lockup__word { color: #6FD98F; white-space: normal; }
-  .hero__brand .lockup__word span { color: var(--green-bright); }
+  .hero__brand span { display: block; }
+  .hero__brand .l1 { color: var(--paper); }
+  .hero__brand .l2 { color: var(--green-bright); }
+
   .hero__tagline {
-    font-family: var(--font-display); font-weight: 400; margin: 0 0 1.4rem;
-    font-size: clamp(1.4rem, 3.6vw, 2.6rem); line-height: 1.04; letter-spacing: 0.005em;
-    text-transform: uppercase; color: var(--paper);
+    font-family: var(--font-body); font-weight: 600; margin: 0 0 1.1rem;
+    font-size: clamp(1.25rem, 2.5vw, 2rem); line-height: 1.2; color: var(--paper);
   }
   .hero__tagline em { font-style: normal; color: var(--green-bright); }
+
   .hero__sub {
-    max-width: 34rem; margin: 0; font-size: clamp(0.98rem, 1.35vw, 1.12rem);
-    line-height: 1.6; color: var(--paper-dim);
+    max-width: 30rem; margin: 0 0 2rem; font-size: clamp(0.95rem, 1.2vw, 1.05rem);
+    line-height: 1.62; color: var(--paper-dim);
   }
+
+  .hero__cta {
+    display: inline-flex; align-items: center; gap: 0.6rem;
+    padding: 1rem 1.9rem; border-radius: 999px; text-decoration: none;
+    background: var(--green); color: #fff; font-weight: 700; font-size: 0.98rem;
+    box-shadow: 0 16px 34px -12px rgba(31,162,76,0.55);
+    transition: transform 0.2s ease, background 0.25s ease, box-shadow 0.25s ease;
+  }
+  .hero__cta:hover { transform: translateY(-2px); background: var(--green-bright); box-shadow: 0 22px 40px -12px rgba(31,162,76,0.6); }
+  .hero__cta svg { width: 1.15em; height: 1.15em; }
+
+  .hero__badges { display: flex; flex-wrap: wrap; gap: 1rem 1.6rem; margin-top: 2.4rem; }
+  .hero__badge {
+    display: inline-flex; align-items: center; gap: 0.6rem;
+    font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--paper-dim); line-height: 1.35;
+  }
+  .hero__badge svg { width: 22px; height: 22px; color: var(--green-bright); flex: none; }
+
+  /* card de categorias — vidro escuro translucido */
+  .hero__cats {
+    position: absolute; z-index: 3; top: clamp(6rem, 15vh, 9rem); right: clamp(1.25rem, 4vw, 3rem);
+    width: min(80vw, 252px); padding: 0.5rem;
+    background: rgba(10,20,13,0.55); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 20px;
+    box-shadow: 0 30px 60px -24px rgba(0,0,0,0.6);
+    display: flex; flex-direction: column;
+  }
+  .hero__cats-lead {
+    display: flex; align-items: center; gap: 0.65rem; padding: 0.7rem 0.75rem;
+    border-radius: 15px; background: rgba(55,199,102,0.12); margin-bottom: 0.25rem;
+    font-size: 0.85rem; font-weight: 700; color: var(--paper); line-height: 1.15;
+  }
+  .hero__cats-lead .ic {
+    width: 34px; height: 34px; flex: none; border-radius: 50%;
+    display: grid; place-items: center; background: rgba(55,199,102,0.18); color: var(--green-bright);
+  }
+  .hero__cats-lead .ic svg { width: 18px; height: 18px; }
+  .hero__cat {
+    display: flex; align-items: center; gap: 0.65rem; padding: 0.58rem 0.75rem;
+    font-size: 0.85rem; font-weight: 500; color: var(--paper-dim); line-height: 1.25;
+  }
+  .hero__cat + .hero__cat { border-top: 1px solid rgba(255,255,255,0.06); }
+  .hero__cat svg { width: 18px; height: 18px; color: var(--green-bright); flex: none; }
+
+  .hero__note {
+    position: absolute; z-index: 3; top: clamp(1.4rem, 4.5vh, 2.8rem); right: clamp(1.5rem, 6vw, 5rem);
+    max-width: 15rem; text-align: right; transform: rotate(-4deg);
+    font-family: var(--font-hand); font-weight: 700; font-size: clamp(1.3rem, 2.1vw, 1.75rem);
+    line-height: 1.1; color: var(--green-bright);
+  }
+  .hero__note::after {
+    content: ""; display: block; margin: 0.25rem 0 0 auto; width: 56%; height: 3px; border-radius: 3px;
+    background: linear-gradient(to left, var(--green-bright), transparent);
+  }
+
   .hero__cue {
-    position: absolute; left: 50%; bottom: clamp(1.75rem, 5vh, 3rem); transform: translateX(-50%); z-index: 2;
-    display: flex; flex-direction: column; align-items: center; gap: 0.65rem;
-    font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.18em; text-transform: uppercase;
+    position: absolute; left: clamp(1.5rem, 7vw, 6rem); bottom: clamp(1.5rem, 5vh, 2.6rem); z-index: 3;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 0.55rem;
+    font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.18em; text-transform: uppercase;
     color: var(--paper-dim);
   }
-  .hero__cue-line {
-    position: relative; width: 1px; height: 44px; overflow: hidden;
-    background: rgba(245,242,232,0.14);
-  }
+  .hero__cue-line { position: relative; width: 1px; height: 42px; overflow: hidden; background: rgba(245,242,232,0.16); }
   .hero__cue-line::after {
     content: ""; position: absolute; inset: 0;
     background: linear-gradient(to bottom, var(--green-bright), transparent);
@@ -422,12 +671,28 @@ __IMG_VARS__
   }
   @keyframes cueDrop { 0% { transform: translateY(-100%); } 55%, 100% { transform: translateY(100%); } }
   @media (prefers-reduced-motion: reduce) { .hero__cue-line::after { animation: none; transform: none; } }
-  @media (max-width: 860px) {
-    .hero { padding: 7rem 1.5rem 8.5rem; }
-    .hero__brand { font-size: clamp(2rem, 12vw, 3.6rem); }
-    .hero__tagline { font-size: clamp(1.25rem, 5vw, 1.9rem); }
-    .hero__glow--far { top: -8%; right: -34%; }
-    .hero__glow--near { bottom: -34%; left: -34%; }
+
+  @media (max-width: 900px) {
+    .hero {
+      grid-template-columns: 1fr; align-content: start;
+      padding: 6.5rem 1.4rem 2.5rem; gap: 1.1rem;
+    }
+    .hero__media {
+      position: relative; inset: auto; width: auto; order: 3;
+      height: min(50vh, 400px); margin: 1rem -1.4rem 0;
+    }
+    .hero__photo {
+      background-position: 50% 24%;
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 32%);
+              mask-image: linear-gradient(to bottom, transparent 0%, #000 32%);
+    }
+    .hero__media::after {
+      background: linear-gradient(to top, rgba(8,19,11,0.55), transparent 42%, transparent 82%, rgba(8,19,11,0.85));
+    }
+    .hero__inner { max-width: none; order: 1; }
+    .hero__cats { position: static; order: 2; width: 100%; max-width: 340px; margin-top: 1.3rem; }
+    .hero__note, .hero__cue, .hero__leaf { display: none; }
+    .hero__brand { font-size: clamp(2.4rem, 13vw, 4rem); }
   }
 
   /* ---------- palco: crossfade fixo ---------- */
@@ -495,6 +760,269 @@ __IMG_VARS__
     .panel__buy { justify-content: center; }
   }
 
+  /* ---------- cena cinematográfica: tratamento visual por produto ---------- */
+  /* Só entra nos painéis com .panel--scene (por enquanto, ARROZ). Os demais
+     ficam exatamente como estavam. Nada aqui toca a imagem do produto: são
+     camadas de atmosfera, luz e elementos decorativos ao redor dele. */
+  .panel--scene { --p: 0; }              /* progresso da cena (JS): 0 = em cena */
+
+  .panel__atmos { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+  .panel__beam {
+    position: absolute; left: 50%; top: -14%; width: min(52vw, 500px); height: 132%;
+    transform: translateX(-50%); filter: blur(40px); mix-blend-mode: screen;
+    animation: sceneBeam 13s ease-in-out infinite;
+  }
+  @keyframes sceneBeam {
+    0%, 100% { opacity: 0.7; transform: translateX(-52%) scaleX(1); }
+    50%      { opacity: 1;   transform: translateX(-48%) scaleX(1.08); }
+  }
+  .panel__floor {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 42%;
+    transform: translateY(calc(var(--p) * 12px));
+  }
+
+  .panel--scene .panel__word {
+    font-size: clamp(4rem, 21vw, 15rem); letter-spacing: -0.02em;
+    -webkit-mask-image: linear-gradient(to bottom, #000 50%, transparent 92%);
+            mask-image: linear-gradient(to bottom, #000 50%, transparent 92%);
+  }
+  .panel--scene.scheme-light .panel__word { color: rgba(214, 230, 255, 0.09); }
+  .panel--scene.scheme-dark  .panel__word { color: rgba(20, 23, 15, 0.11); }
+
+  .panel--scene .panel__stage { position: relative; }
+  .panel--scene .panel__glow {
+    position: absolute; left: 50%; top: 52%; z-index: 0; pointer-events: none;
+    width: min(66vw, 640px); height: min(78vh, 720px); border-radius: 50%;
+    transform: translate(-50%, -50%) scale(calc(1 + var(--p) * 0.05));
+    filter: blur(6px); mix-blend-mode: screen;
+    animation: sceneGlow 9s ease-in-out infinite;
+  }
+  @keyframes sceneGlow { 0%, 100% { opacity: 0.8; } 50% { opacity: 1; } }
+
+  .panel--scene .panel__hero { position: relative; z-index: 2; }
+  .panel--scene .panel__img {
+    height: clamp(300px, 46vw, 600px); width: min(90vw, 600px);
+    filter: drop-shadow(0 34px 42px rgba(0, 0, 0, 0.5));
+  }
+  .panel--scene .panel__img--mirror {
+    position: absolute; left: 0; right: 0; top: 100%;
+    transform: scaleY(-1); opacity: 0.2; filter: blur(6px); pointer-events: none;
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.55), transparent 58%);
+            mask-image: linear-gradient(to bottom, rgba(0,0,0,0.55), transparent 58%);
+  }
+  .panel--scene .panel__shadow {
+    position: absolute; left: 50%; bottom: -2%; width: 60%; height: 10%; z-index: 0;
+    transform: translateX(-50%); border-radius: 50%; filter: blur(12px);
+    background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.6), transparent 72%);
+  }
+
+  .panel--scene .panel__props { position: absolute; inset: 0; pointer-events: none; }
+  .panel--scene .panel__props--far  { z-index: 1; transform: translate3d(0, calc(var(--p) * 24px), 0); }
+  .panel--scene .panel__props--near { z-index: 3; transform: translate3d(0, calc(var(--p) * -36px), 0); }
+
+  .grain, .leaf, .mote {
+    position: absolute; transform: rotate(var(--r, 0deg));
+    animation: sceneDrift var(--dur, 7s) ease-in-out infinite; animation-delay: var(--delay, 0s);
+  }
+  .grain {
+    width: var(--w, 5px); height: var(--h, 15px); border-radius: 50%;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), var(--grain, #e6dfca));
+    opacity: var(--o, 0.6); filter: blur(var(--b, 0px));
+    box-shadow: 0 0 4px rgba(205, 228, 255, 0.25);
+  }
+  .leaf {
+    width: var(--w, 24px); height: var(--h, 7px); opacity: var(--o, 0.4); filter: blur(0.5px);
+    background: linear-gradient(90deg, transparent, var(--leaf, rgba(150, 205, 120, 0.5)) 45%, transparent);
+    border-radius: 0 100% 0 100% / 0 100% 0 100%;
+  }
+  .mote {
+    width: var(--w, 2px); height: var(--w, 2px); border-radius: 50%;
+    opacity: var(--o, 0.2); filter: blur(var(--b, 0.4px));
+    background: radial-gradient(circle, var(--mote, rgba(200, 225, 255, 0.9)), transparent 70%);
+  }
+  @keyframes sceneDrift {
+    0%, 100% { transform: translate3d(0, 0, 0) rotate(var(--r, 0deg)); }
+    50%      { transform: translate3d(var(--dx, 0px), var(--dy, -8px), 0)
+               rotate(calc(var(--r, 0deg) + var(--dr, 6deg))); }
+  }
+
+  /* --- ARROZ: azul profundo, luz fria, grãos e folhas de arroz --- */
+  .panel[data-key="arroz"] .panel__atmos {
+    background:
+      linear-gradient(90deg, rgba(3, 12, 30, 0.74), rgba(3, 12, 30, 0.18) 30%, transparent 48%),
+      radial-gradient(85% 62% at 50% 26%, rgba(96, 158, 232, 0.42), transparent 60%),
+      radial-gradient(120% 100% at 50% 120%, rgba(2, 11, 28, 0.74), transparent 72%),
+      radial-gradient(150% 130% at 50% 45%, transparent 40%, rgba(2, 9, 24, 0.62) 100%);
+  }
+  .panel[data-key="arroz"] .panel__beam {
+    background: linear-gradient(to bottom, rgba(150, 195, 255, 0.42), rgba(130, 180, 255, 0.08) 52%, transparent 80%);
+  }
+  .panel[data-key="arroz"] .panel__floor {
+    background:
+      radial-gradient(42% 58% at 50% 92%, rgba(155, 200, 255, 0.28), transparent 70%),
+      radial-gradient(95% 120% at 50% 100%, rgba(110, 165, 255, 0.12), transparent 60%),
+      linear-gradient(to bottom, transparent 40%, rgba(3, 14, 34, 0.62));
+  }
+  .panel[data-key="arroz"] .panel__glow {
+    background: radial-gradient(closest-side,
+      rgba(205, 228, 255, 0.72), rgba(120, 175, 255, 0.28) 38%,
+      rgba(58, 120, 210, 0.10) 62%, transparent 78%);
+  }
+  .panel[data-key="arroz"] .panel__props {
+    --grain: #efe9d7; --leaf: rgba(150, 205, 120, 0.5); --mote: rgba(190, 220, 255, 0.9);
+  }
+
+  /* --- FEIJÃO: vinho/escuro, atmosfera quente, grãos rechonchudos --- */
+  .panel[data-key="feijao"] .panel__atmos {
+    background:
+      linear-gradient(90deg, rgba(20, 6, 10, 0.74), rgba(20, 6, 10, 0.16) 30%, transparent 48%),
+      radial-gradient(85% 62% at 50% 28%, rgba(150, 40, 45, 0.34), transparent 60%),
+      radial-gradient(120% 100% at 50% 120%, rgba(14, 4, 8, 0.80), transparent 72%),
+      radial-gradient(150% 130% at 50% 45%, transparent 40%, rgba(10, 3, 6, 0.64) 100%);
+  }
+  .panel[data-key="feijao"] .panel__beam { background: linear-gradient(to bottom, rgba(220, 90, 70, 0.30), rgba(200, 70, 60, 0.05) 55%, transparent 82%); }
+  .panel[data-key="feijao"] .panel__floor {
+    background:
+      radial-gradient(42% 58% at 50% 92%, rgba(210, 90, 70, 0.22), transparent 70%),
+      linear-gradient(to bottom, transparent 40%, rgba(12, 3, 6, 0.64));
+  }
+  .panel[data-key="feijao"] .panel__glow { background: radial-gradient(closest-side, rgba(240, 150, 120, 0.5), rgba(170, 50, 45, 0.2) 42%, transparent 76%); }
+  .panel[data-key="feijao"] .panel__props { --grain: #3a1e14; --leaf: rgba(120, 150, 80, 0.4); --mote: rgba(255, 180, 150, 0.85); }
+  .panel[data-key="feijao"] .grain {
+    border-radius: 46% / 40%;
+    background: radial-gradient(circle at 34% 30%, #7a4a38, #24100a 78%);
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.35);
+  }
+
+  /* --- AÇÚCAR: creme claro + vermelho, cristais, luz alta (embalagem branca preservada) --- */
+  .panel[data-key="acucar"] .panel__atmos {
+    background:
+      linear-gradient(90deg, rgba(255, 252, 246, 0.62), rgba(255, 252, 246, 0.10) 30%, transparent 46%),
+      radial-gradient(80% 60% at 50% 26%, rgba(255, 255, 255, 0.55), transparent 62%),
+      radial-gradient(120% 100% at 50% 122%, rgba(196, 38, 46, 0.10), transparent 72%),
+      radial-gradient(150% 130% at 50% 46%, transparent 46%, rgba(120, 90, 80, 0.16) 100%);
+  }
+  .panel[data-key="acucar"] .panel__beam { background: linear-gradient(to bottom, rgba(255, 255, 255, 0.5), rgba(255, 240, 235, 0.08) 55%, transparent 82%); }
+  .panel[data-key="acucar"] .panel__floor {
+    background:
+      radial-gradient(44% 56% at 50% 92%, rgba(255, 255, 255, 0.5), transparent 70%),
+      linear-gradient(to bottom, transparent 45%, rgba(150, 120, 110, 0.18));
+  }
+  .panel[data-key="acucar"] .panel__glow {
+    mix-blend-mode: normal;
+    background: radial-gradient(closest-side, rgba(255, 255, 255, 0.7), rgba(255, 232, 210, 0.22) 40%, transparent 76%);
+  }
+  .panel[data-key="acucar"] .panel__shadow { background: radial-gradient(ellipse at center, rgba(120, 90, 80, 0.34), transparent 72%); }
+  .panel[data-key="acucar"] .panel__props { --grain: #ffffff; --leaf: transparent; --mote: rgba(255, 255, 255, 0.95); }
+  .panel[data-key="acucar"] .grain {
+    border-radius: 22%;
+    background: linear-gradient(135deg, #ffffff, #f0e6d8);
+    box-shadow: 0 0 6px rgba(255, 255, 255, 0.85);
+  }
+
+  /* --- CAFÉ: marrom/vermelho escuro, grãos de café, luz aconchegante --- */
+  .panel[data-key="cafe"] .panel__atmos {
+    background:
+      linear-gradient(90deg, rgba(18, 8, 5, 0.76), rgba(18, 8, 5, 0.16) 30%, transparent 48%),
+      radial-gradient(85% 62% at 50% 28%, rgba(150, 70, 40, 0.34), transparent 60%),
+      radial-gradient(120% 100% at 50% 120%, rgba(14, 6, 4, 0.82), transparent 72%),
+      radial-gradient(150% 130% at 50% 45%, transparent 40%, rgba(10, 4, 3, 0.66) 100%);
+  }
+  .panel[data-key="cafe"] .panel__beam { background: linear-gradient(to bottom, rgba(230, 140, 80, 0.32), rgba(200, 110, 60, 0.06) 55%, transparent 82%); }
+  .panel[data-key="cafe"] .panel__floor {
+    background:
+      radial-gradient(42% 58% at 50% 92%, rgba(220, 130, 70, 0.22), transparent 70%),
+      linear-gradient(to bottom, transparent 40%, rgba(10, 4, 3, 0.66));
+  }
+  .panel[data-key="cafe"] .panel__glow { background: radial-gradient(closest-side, rgba(250, 190, 140, 0.5), rgba(180, 90, 50, 0.2) 42%, transparent 76%); }
+  .panel[data-key="cafe"] .panel__props { --grain: #2a1509; --leaf: transparent; --mote: rgba(255, 200, 150, 0.8); }
+  .panel[data-key="cafe"] .grain {
+    border-radius: 44% / 38%;
+    background: radial-gradient(circle at 36% 32%, #6b3c22, #1c0d05 80%);
+  }
+
+  /* --- ÓLEO: dourado, reflexos, sensação fluida --- */
+  .panel[data-key="oleo"] .panel__atmos {
+    background:
+      linear-gradient(90deg, rgba(120, 80, 10, 0.5), rgba(120, 80, 10, 0.10) 30%, transparent 46%),
+      radial-gradient(82% 60% at 50% 26%, rgba(255, 225, 150, 0.58), transparent 62%),
+      radial-gradient(120% 100% at 50% 122%, rgba(120, 70, 10, 0.28), transparent 72%),
+      radial-gradient(150% 130% at 50% 46%, transparent 44%, rgba(90, 60, 10, 0.28) 100%);
+  }
+  .panel[data-key="oleo"] .panel__beam { background: linear-gradient(to bottom, rgba(255, 235, 170, 0.55), rgba(255, 220, 140, 0.10) 55%, transparent 82%); }
+  .panel[data-key="oleo"] .panel__floor {
+    background:
+      radial-gradient(46% 56% at 50% 92%, rgba(255, 235, 170, 0.5), transparent 70%),
+      linear-gradient(to bottom, transparent 44%, rgba(90, 60, 12, 0.3));
+  }
+  .panel[data-key="oleo"] .panel__glow {
+    mix-blend-mode: normal;
+    background: radial-gradient(closest-side, rgba(255, 240, 190, 0.7), rgba(230, 180, 60, 0.28) 40%, transparent 76%);
+  }
+  .panel[data-key="oleo"] .panel__props { --grain: #ffd970; --leaf: transparent; --mote: rgba(255, 240, 190, 0.9); }
+  .panel[data-key="oleo"] .grain {
+    border-radius: 50%;
+    background: radial-gradient(circle at 34% 30%, #fff6d8, #e0a92a 75%);
+    box-shadow: 0 0 6px rgba(255, 225, 150, 0.7);
+  }
+
+  /* --- LEITE: creme/amarelo claro, partículas suaves, luz limpa --- */
+  .panel[data-key="leite"] .panel__atmos {
+    background:
+      linear-gradient(90deg, rgba(255, 252, 240, 0.6), rgba(255, 252, 240, 0.10) 30%, transparent 46%),
+      radial-gradient(82% 62% at 50% 26%, rgba(255, 250, 235, 0.7), transparent 64%),
+      radial-gradient(120% 100% at 50% 122%, rgba(180, 140, 60, 0.16), transparent 72%),
+      radial-gradient(150% 130% at 50% 46%, transparent 46%, rgba(150, 120, 60, 0.2) 100%);
+  }
+  .panel[data-key="leite"] .panel__beam { background: linear-gradient(to bottom, rgba(255, 255, 250, 0.55), rgba(255, 250, 235, 0.10) 55%, transparent 82%); }
+  .panel[data-key="leite"] .panel__floor {
+    background:
+      radial-gradient(46% 56% at 50% 92%, rgba(255, 255, 250, 0.55), transparent 70%),
+      linear-gradient(to bottom, transparent 46%, rgba(150, 120, 60, 0.2));
+  }
+  .panel[data-key="leite"] .panel__glow {
+    mix-blend-mode: normal;
+    background: radial-gradient(closest-side, rgba(255, 255, 252, 0.75), rgba(255, 248, 225, 0.25) 42%, transparent 78%);
+  }
+  .panel[data-key="leite"] .panel__props { --grain: #fffdf6; --leaf: transparent; --mote: rgba(255, 255, 250, 0.95); }
+  .panel[data-key="leite"] .grain {
+    border-radius: 50%;
+    background: radial-gradient(circle, #ffffff, #f3ead6);
+    filter: blur(0.6px); box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+  }
+
+  /* --- HORTIFRÚTI: verde/natural, folhas e frutos, fresco e vivo --- */
+  .panel[data-key="fruteira"] .panel__atmos {
+    background:
+      linear-gradient(90deg, rgba(4, 26, 12, 0.6), rgba(4, 26, 12, 0.14) 30%, transparent 48%),
+      radial-gradient(85% 62% at 50% 26%, rgba(120, 220, 140, 0.34), transparent 60%),
+      radial-gradient(120% 100% at 50% 120%, rgba(3, 20, 10, 0.72), transparent 72%),
+      radial-gradient(150% 130% at 50% 45%, transparent 42%, rgba(2, 16, 8, 0.55) 100%);
+  }
+  .panel[data-key="fruteira"] .panel__beam { background: linear-gradient(to bottom, rgba(150, 240, 170, 0.34), rgba(120, 220, 150, 0.06) 55%, transparent 82%); }
+  .panel[data-key="fruteira"] .panel__floor {
+    background:
+      radial-gradient(44% 58% at 50% 92%, rgba(150, 240, 170, 0.20), transparent 70%),
+      linear-gradient(to bottom, transparent 42%, rgba(3, 18, 9, 0.55));
+  }
+  .panel[data-key="fruteira"] .panel__glow { background: radial-gradient(closest-side, rgba(200, 255, 210, 0.55), rgba(80, 200, 110, 0.2) 42%, transparent 76%); }
+  .panel[data-key="fruteira"] .panel__props { --grain: #d9e8bf; --leaf: rgba(120, 210, 110, 0.62); --mote: rgba(200, 255, 210, 0.9); }
+  .panel[data-key="fruteira"] .grain {
+    border-radius: 50% 50% 48% 48% / 62% 62% 38% 38%;
+    background: linear-gradient(135deg, #eaf3d8, #bcd98f);
+  }
+
+  @media (max-width: 720px) {
+    .panel--scene .panel__img { height: clamp(220px, 52vw, 360px); width: min(84vw, 380px); }
+    .panel--scene .panel__word { font-size: clamp(2.8rem, 24vw, 7rem); }
+    .panel--scene .panel__img--mirror { display: none; }
+    .panel--scene .panel__props--far .mote:nth-of-type(2n) { display: none; }
+    .panel--scene .panel__glow { width: 82vw; height: 46vh; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .grain, .leaf, .mote, .panel--scene .panel__glow, .panel__beam { animation: none; }
+  }
+
   /* ---------- grande transição final ---------- */
   /* altura garantida pra caber o anel de produtos inteiro (sem corte):
      raio do anel ~40% de 620px + folga dos thumbs + respiro vertical */
@@ -512,32 +1040,20 @@ __IMG_VARS__
     content: ""; position: absolute; inset: 0; pointer-events: none;
     background: radial-gradient(52% 48% at 50% 50%, rgba(31,162,76,0.16), transparent 72%);
   }
-  /* elipse (mais larga que alta): espalha os produtos pros lados, longe do texto,
-     e encurta a extensao vertical pra nunca cortar em tela baixa */
-  .finale__orbit {
-    position: absolute; z-index: 1; top: 50%; left: 50%;
-    transform: translate(-50%, calc(-50% + 26px));
-    width: min(96vw, 860px); height: min(82vw, 690px); pointer-events: none;
+  .finale__core { position: relative; z-index: 2; max-width: 30rem; padding: 0 1rem; }
+  .finale__eyebrow {
+    font-family: var(--font-mono); font-size: 0.74rem; letter-spacing: 0.28em; text-transform: uppercase;
+    color: var(--green-bright); margin: 0 0 1.4rem;
+    display: inline-flex; align-items: center; gap: 0.7rem;
   }
-  .finale__thumb {
-    position: absolute; width: clamp(38px, 6vw, 58px); height: clamp(38px, 6vw, 58px);
-    transform: translate(-50%, -50%);
-    background-repeat: no-repeat; background-position: center; background-size: contain;
-    opacity: 0.8; /* so recua os produtos distantes; nao altera a imagem */
-    animation: orbitFloat 6s ease-in-out infinite;
-    animation-delay: calc(var(--d) * -0.8s);
-  }
-  @keyframes orbitFloat { 0%,100% { margin-top: -5px; } 50% { margin-top: 5px; } }
-  @media (prefers-reduced-motion: reduce) { .finale__thumb { animation: none; } }
-  .finale__core { position: relative; z-index: 2; max-width: 22rem; padding: 0 1rem; }
-  .finale__lockup { font-size: clamp(1.35rem, 3.2vw, 2.1rem); margin-bottom: clamp(1.4rem, 4vh, 2rem); }
+  .finale__eyebrow::before, .finale__eyebrow::after { content: ""; width: 24px; height: 1px; background: currentColor; opacity: 0.6; }
   .finale__headline {
-    font-family: var(--font-display); font-weight: 400; margin: 0 0 1.6rem;
-    font-size: clamp(1.9rem, 5vw, 3.2rem); line-height: 1.02; color: var(--paper);
-    text-transform: uppercase; letter-spacing: 0.01em;
+    font-family: var(--font-display); font-weight: 400; margin: 0 0 1.9rem;
+    font-size: clamp(2.1rem, 5.4vw, 3.5rem); line-height: 1.0; color: var(--paper);
+    text-transform: uppercase; letter-spacing: 0.005em;
     text-shadow: 0 2px 24px rgba(12,13,10,0.75), 0 0 8px rgba(12,13,10,0.6);
   }
-  .finale__headline em { font-style: normal; color: var(--green-bright); display: block; }
+  .finale__headline em { font-style: normal; color: var(--green-bright); display: block; margin-top: 0.12em; }
   .finale__cta {
     display: inline-flex; align-items: center; gap: 0.55rem;
     padding: 0.9rem 1.7rem; border-radius: 999px; text-decoration: none;
@@ -547,8 +1063,6 @@ __IMG_VARS__
   }
   .finale__cta:hover { border-color: var(--green-bright); background: rgba(55,199,102,0.12); transform: translateY(-2px); }
   @media (max-width: 720px) {
-    /* encolhe um pouco o anel pra folgar nas laterais do celular */
-    .finale__orbit { transform: translate(-50%, calc(-50% + 16px)) scale(0.84); }
     .finale__headline { font-size: clamp(1.7rem, 7vw, 2.3rem); }
   }
 
@@ -575,6 +1089,8 @@ __IMG_VARS__
   .card__media {
     height: 170px; margin-bottom: 1rem; border-radius: 10px;
     background-repeat: no-repeat; background-position: center; background-size: contain;
+    /* todas as fotos do catalogo tem fundo branco -> mesmo tile claro pra todas */
+    background-color: #F7F6F1; padding: 0.6rem;
   }
   .card__body { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 1rem; flex: 1; }
   .card__name { font-weight: 700; font-size: 0.94rem; color: var(--paper); }
@@ -587,6 +1103,24 @@ __IMG_VARS__
   }
   .card__add:hover { background: var(--green); color: #fff; }
 
+  /* celular: catálogo em 3 por fileira, cards compactos */
+  @media (max-width: 720px) {
+    .shop { padding: 3.5rem 1rem 3.5rem; }
+    .shop__grid { grid-template-columns: repeat(3, 1fr); gap: 0.55rem; }
+    .card { padding: 0.5rem; border-radius: 12px; }
+    .card__media { height: 84px; margin-bottom: 0.5rem; padding: 0.3rem; border-radius: 8px; }
+    .card__body { margin-bottom: 0.5rem; gap: 0.1rem; }
+    .card__name { font-size: 0.7rem; line-height: 1.2; }
+    .card__price { font-size: 0.7rem; }
+    .card__add { padding: 0.45rem 0.3rem; font-size: 0.64rem; border-radius: 8px; }
+    .card:hover { transform: none; }
+  }
+  @media (max-width: 380px) {
+    .shop__grid { gap: 0.4rem; }
+    .card__media { height: 72px; }
+    .card__name { font-size: 0.64rem; }
+  }
+
   /* ---------- entrega ---------- */
   .delivery {
     position: relative; background: linear-gradient(180deg, var(--graphite) 0%, #0A1A0F 100%);
@@ -598,18 +1132,22 @@ __IMG_VARS__
     text-transform: uppercase; letter-spacing: 0.01em;
   }
   .delivery__headline em { font-style: normal; color: var(--green-bright); display: block; }
+  /* info de serviço: sem caixinhas, sem divisórias — só ícone linear + texto */
   .delivery__grid {
-    display: flex; flex-wrap: wrap; align-items: stretch; justify-content: center;
-    gap: 1rem; max-width: 54rem; margin: 0 auto 2.8rem;
+    display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: center;
+    gap: clamp(1.8rem, 6vw, 4rem); max-width: 50rem; margin: 0 auto 3rem;
   }
   .delivery__item {
-    flex: 1 1 200px; max-width: 260px; padding: 1.6rem 1.2rem; border-radius: 14px;
-    background: rgba(245,242,232,0.04); border: 1px solid var(--line);
-    display: flex; flex-direction: column; gap: 0.5rem; align-items: center;
+    flex: 0 1 190px; display: flex; flex-direction: column; align-items: center;
+    gap: 0.55rem; text-align: center;
   }
-  .delivery__emoji { font-size: 1.7rem; }
-  .delivery__label { font-weight: 700; font-size: 0.96rem; color: var(--paper); }
-  .delivery__hint { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.04em; color: var(--paper-dim); }
+  .delivery__ic { display: grid; place-items: center; color: var(--green-bright); }
+  .delivery__ic svg { width: 26px; height: 26px; }
+  .delivery__label {
+    font-weight: 700; font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--paper);
+  }
+  .delivery__hint { font-family: var(--font-mono); font-size: 0.74rem; letter-spacing: 0.03em; color: var(--paper-dim); }
   .delivery__cta {
     display: inline-flex; align-items: center; gap: 0.55rem; border: 0; cursor: pointer;
     padding: 1rem 2rem; border-radius: 999px; background: var(--green); color: #fff;
@@ -706,6 +1244,7 @@ __IMG_VARS__
 
 CSS = (CSS.replace("__N__", str(N))
           .replace("__LASTBG__", LAST_BG)
+          .replace("__HERO_IMG__", HERO_IMG)
           .replace("__IMG_VARS__", img_vars))
 
 # ---------------------------------------------------------------------------
@@ -744,6 +1283,10 @@ __PRODUCT_JS__
       var reveal = Math.min(1, Math.max(0, (local + band) / band));
       panel.style.opacity = String(reveal);
       panel.style.zIndex = String(i);
+      if (panel.classList.contains('panel--scene')) {
+        panel.style.setProperty('--p', reduceMotion ? '0'
+          : Math.max(-1.3, Math.min(1.3, local)).toFixed(3));
+      }
       if (reduceMotion) return;
 
       var entry = panel.getAttribute('data-entry');
@@ -759,7 +1302,12 @@ __PRODUCT_JS__
       var scale = 0.96 + reveal * 0.04 - extra * away;
       panel.style.filter = blur > 0.15 ? 'blur(' + blur.toFixed(2) + 'px)' : 'none';
       panel.style.transform = 'translate(' + tx.toFixed(2) + 'vw,' + ty.toFixed(2) + 'vh) rotate(' + rot.toFixed(2) + 'deg) scale(' + scale.toFixed(3) + ')';
-      if (words[i]) words[i].style.transform = 'translateX(' + (local * -3.5).toFixed(2) + 'vw)';
+      if (words[i]) {
+        var wx = (local * -3.5).toFixed(2);
+        words[i].style.transform = panel.classList.contains('panel--scene')
+          ? 'translate(' + wx + 'vw, -7%)'
+          : 'translateX(' + wx + 'vw)';
+      }
     });
   }
 
@@ -960,7 +1508,7 @@ HTML = f"""<!doctype html>
 <meta name="description" content="Mercado Oeste — o mercado que vai até você. Experiência conceitual de um supermercado local.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Caveat:wght@600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/motion@11.18.2/dist/motion.js"></script>
 <style>{CSS}</style>
 </head>
@@ -972,7 +1520,9 @@ HTML = f"""<!doctype html>
 </div>
 
 <header class="site-header">
-  <a class="wordmark lockup" href="#top" aria-label="Mercado Oeste — início">{LOCKUP}</a>
+  <a class="wordmark" href="#top" aria-label="Mercado Oeste — início">
+    <img class="wordmark__img" src="data:image/png;base64,{LOGO_IMG}" alt="Mercado Oeste">
+  </a>
 </header>
 
 <nav class="dotnav" aria-label="Navegação de produtos">
@@ -985,21 +1535,39 @@ HTML = f"""<!doctype html>
 
 <main id="top">
   <section class="hero">
-    <div class="hero__bg" aria-hidden="true">
-      <span class="hero__glow hero__glow--far"></span>
-      <span class="hero__glow hero__glow--near"></span>
-    </div>
+    <div class="hero__media" aria-hidden="true"><div class="hero__photo"></div></div>
+    <span class="hero__leaf" aria-hidden="true" style="left:6%;top:22%;--w:44px;--r:-18deg;--dur:12s;--delay:-2s;"></span>
+    <span class="hero__leaf" aria-hidden="true" style="left:40%;top:12%;--w:30px;--r:14deg;--dur:9s;--delay:-5s;"></span>
+    <span class="hero__leaf" aria-hidden="true" style="left:52%;top:74%;--w:38px;--r:-32deg;--dur:13s;--delay:-1s;"></span>
+    <span class="hero__leaf" aria-hidden="true" style="left:12%;top:80%;--w:26px;--r:24deg;--dur:10s;--delay:-7s;"></span>
+
     <div class="hero__inner">
       <p class="hero__eyebrow">Supermercado · entrega em casa</p>
-      <h1 class="lockup hero__brand">{LOCKUP}</h1>
+      <h1 class="hero__brand"><span class="l1">Mercado</span><span class="l2">Oeste.</span></h1>
       <p class="hero__tagline">O mercado que <em>vai até você.</em></p>
-      <p class="hero__sub">Tudo o que você precisa, a poucos cliques. Role a página e conheça os produtos do Mercado Oeste, um de cada vez.</p>
+      <p class="hero__sub">Tudo o que você precisa, a poucos cliques. Qualidade, variedade e praticidade no seu dia a dia.</p>
+      <a class="hero__cta" href="#meus-produtos">{ICON['cart']} Começar a comprar {ICON['arrow']}</a>
+      <div class="hero__badges">
+        <span class="hero__badge">{ICON['shield']}<span>Produtos<br>de qualidade</span></span>
+        <span class="hero__badge">{ICON['truck']}<span>Entrega<br>rápida</span></span>
+        <span class="hero__badge">{ICON['card']}<span>Pagamento<br>seguro</span></span>
+      </div>
     </div>
+
+    <aside class="hero__cats" aria-hidden="true">
+      <span class="hero__cats-lead"><span class="ic">{ICON['truck']}</span>Entrega rápida e segura</span>
+      <span class="hero__cat">{ICON['cart']} Alimentos e bebidas</span>
+      <span class="hero__cat">{ICON['bottle']} Higiene e limpeza</span>
+      <span class="hero__cat">{ICON['snow']} Frios e congelados</span>
+      <span class="hero__cat">{ICON['spark']} E muito mais!</span>
+    </aside>
+
+    <p class="hero__note" aria-hidden="true">Do seu jeito, no seu tempo.</p>
+
     <div class="hero__cue" aria-hidden="true">
       <span>Role para explorar</span>
       <span class="hero__cue-line"></span>
     </div>
-    <div class="hero__fade" aria-hidden="true"></div>
   </section>
 
   <div class="stage-wrap" id="stageWrap">
@@ -1011,12 +1579,9 @@ HTML = f"""<!doctype html>
   </div>
 
   <section class="finale">
-    <div class="finale__orbit" aria-hidden="true">
-{finale_thumbs}
-    </div>
     <div class="finale__core">
-      <span class="lockup finale__lockup" data-reveal>{LOCKUP}</span>
-      <h2 class="finale__headline" data-reveal>Tudo que você precisa.<em>Em um só lugar.</em></h2>
+      <p class="finale__eyebrow" data-reveal>Mercado Oeste</p>
+      <h2 class="finale__headline" data-reveal>Tudo o que você precisa,<em>em um só lugar.</em></h2>
       <a class="finale__cta" href="#meus-produtos" data-reveal>Ver produtos <span aria-hidden="true">→</span></a>
     </div>
   </section>
@@ -1035,9 +1600,21 @@ HTML = f"""<!doctype html>
   <section class="delivery" id="entrega">
     <h2 class="delivery__headline" data-reveal>Comprou?<em>A gente entrega.</em></h2>
     <div class="delivery__grid">
-      <div class="delivery__item" data-reveal><span class="delivery__emoji">🚚</span><span class="delivery__label">Entrega em casa</span><span class="delivery__hint">Todo o bairro</span></div>
-      <div class="delivery__item" data-reveal><span class="delivery__emoji">💰</span><span class="delivery__label">Taxa fixa</span><span class="delivery__hint">R$ 5,00</span></div>
-      <div class="delivery__item" data-reveal><span class="delivery__emoji">🛒</span><span class="delivery__label">Pedido pelo site</span><span class="delivery__hint">Rápido e simples</span></div>
+      <div class="delivery__item" data-reveal>
+        <span class="delivery__ic">{ICON['truck']}</span>
+        <span class="delivery__label">Entrega em casa</span>
+        <span class="delivery__hint">Todo o bairro</span>
+      </div>
+      <div class="delivery__item" data-reveal>
+        <span class="delivery__ic">{ICON['receipt']}</span>
+        <span class="delivery__label">Taxa fixa</span>
+        <span class="delivery__hint">R$ 5,00</span>
+      </div>
+      <div class="delivery__item" data-reveal>
+        <span class="delivery__ic">{ICON['cart']}</span>
+        <span class="delivery__label">Pedido pelo site</span>
+        <span class="delivery__hint">Rápido e simples</span>
+      </div>
     </div>
     <button class="delivery__cta" id="orderBtn" type="button" data-reveal>Fazer pedido</button>
   </section>
