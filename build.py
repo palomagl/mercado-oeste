@@ -36,59 +36,62 @@ LOCKUP = (
 )
 
 # ---------------------------------------------------------------------------
-# Os 7 momentos do palco. bg = atmosfera da cena (cor predominante da embalagem);
-# scheme "light" = tipografia clara sobre fundo escuro, "dark" = o inverso.
-# entry = tempero da animacao de entrada (tudo continua ligado ao scroll).
+# Os 7 momentos do palco, NA ORDEM do scroll:
+#   arroz -> feijao -> acucar -> cafe -> oleo -> leite -> hortifruti
+# bg = atmosfera da cena (cor predominante da embalagem); scheme "light" =
+# tipografia clara sobre fundo escuro, "dark" = o inverso. entry = tempero da
+# animacao de entrada. img = PNG ja com fundo transparente (so o fundo externo
+# foi removido; branco/letras/reflexos da embalagem ficam intactos).
 # ---------------------------------------------------------------------------
 PRODUCTS = [
     dict(
-        key="acucar", img=b64("acucar5kg-caravelas.png"),
-        word="AÇÚCAR", title="Açúcar Cristal Caravelas 5kg",
-        desc="A doçura de sempre pra adoçar o dia inteiro.",
-        price="R$ 19,90", bg="#ECE4D6", scheme="dark",
-        accent="#C4262E", entry="rise",
-    ),
-    dict(
-        key="arroz", img=b64("arroz-namorado-5kg.png"),
+        key="arroz", img=b64("arroz-namorado-5kg-cut.png"),
         word="ARROZ", title="Arroz Namorado 5kg",
         desc="Aquele básico que não pode faltar.",
         price="R$ 28,90", bg="#123C72", scheme="light",
         accent="#F2C14E", entry="slide",
     ),
     dict(
-        key="feijao", img=b64("feijao-camil-1kg.png"),
+        key="feijao", img=b64("feijao-camil-1kg-cut.png"),
         word="FEIJÃO", title="Camil Carioca 1kg",
         desc="Para completar a mesa.",
         price="R$ 8,49", bg="#1A1620", scheme="light",
         accent="#D8402F", entry="rise",
     ),
     dict(
-        key="fruteira", img=b64("fruteira.png"),
-        word="FRESCO.\nTODO DIA.", title="Hortifrúti selecionado",
-        desc="Variedade para deixar sua rotina mais leve.",
-        price=None, bg="#1E7A38", scheme="light",
-        accent="#F6D24B", entry="open",
+        key="acucar", img=b64("acucar5kg-caravelas-cut.png"),
+        word="AÇÚCAR", title="Açúcar Cristal Caravelas 5kg",
+        desc="A doçura de sempre pra adoçar o dia inteiro.",
+        price="R$ 19,90", bg="#ECE4D6", scheme="dark",
+        accent="#C4262E", entry="rise",
     ),
     dict(
-        key="leite", img=b64("leite1l-ninho.png"),
-        word="LEITE", title="Leite Ninho 1L",
-        desc="Para começar bem o dia.",
-        price="R$ 6,99", bg="#EFC24C", scheme="dark",
-        accent="#6B4A1E", entry="rise",
+        key="cafe", img=b64("vidrodecafe100g-nescafe-cut.png"),
+        word="CAFÉ", title="Nescafé 100g",
+        desc="Comece bem o seu dia.",
+        price="R$ 14,90", bg="#241310", scheme="light",
+        accent="#E0392E", entry="finale",
     ),
     dict(
-        key="oleo", img=b64("oleodesoja900ml-leve.png"),
+        key="oleo", img=b64("oleodesoja900ml-leve-cut.png"),
         word="ÓLEO", title="Óleo de Soja Liza 900ml",
         desc="Um essencial da cozinha.",
         price="R$ 7,49", bg="#E2A61A", scheme="dark",
         accent="#5A3A12", entry="spin",
     ),
     dict(
-        key="cafe", img=b64("vidrodecafe100g-nescafe.png"),
-        word="CAFÉ", title="Nescafé 100g",
-        desc="Comece bem o seu dia.",
-        price="R$ 14,90", bg="#241310", scheme="light",
-        accent="#E0392E", entry="finale",
+        key="leite", img=b64("leite1l-ninho-cut.png"),
+        word="LEITE", title="Leite Ninho 1L",
+        desc="Para começar bem o dia.",
+        price="R$ 6,99", bg="#EFC24C", scheme="dark",
+        accent="#6B4A1E", entry="rise",
+    ),
+    dict(
+        key="fruteira", img=b64("fruteira-cut.png"),
+        word="FRESCO.\nTODO DIA.", title="Hortifrúti selecionado",
+        desc="Variedade para deixar sua rotina mais leve.",
+        price=None, bg="#1E7A38", scheme="light",
+        accent="#F6D24B", entry="open",
     ),
 ]
 
@@ -185,12 +188,13 @@ dots = "\n".join(
     for i, p in enumerate(PRODUCTS)
 )
 
-# anel de produtos ao redor da logo, na grande transição final
+# anel de produtos ao redor da logo, na grande transição final.
+# offset de meio passo -> nenhum produto cai exatamente em cima do texto central.
 finale_thumbs = []
 for i, p in enumerate(PRODUCTS):
-    a = -math.pi / 2 + i * 2 * math.pi / N
-    x = 50 + 48 * math.cos(a)
-    y = 50 + 48 * math.sin(a)
+    a = -math.pi / 2 + math.pi / N + i * 2 * math.pi / N
+    x = 50 + 40 * math.cos(a)
+    y = 50 + 40 * math.sin(a)
     finale_thumbs.append(
         f'      <span class="finale__thumb" data-reveal="orbit" aria-hidden="true"'
         f' style="left:{x:.2f}%;top:{y:.2f}%;--d:{i};background-image:var(--img-{p["key"]})"></span>'
@@ -380,13 +384,23 @@ __IMG_VARS__
     display: inline-flex; align-items: center; gap: 0.7rem;
   }
   .hero__eyebrow::before { content: ""; width: 32px; height: 1px; background: currentColor; }
-  .hero__title {
-    font-family: var(--font-display); font-weight: 400; margin: 0 0 1.7rem;
-    font-size: clamp(2.9rem, 9.4vw, 7.2rem); line-height: 1.02; letter-spacing: -0.005em;
-    text-transform: uppercase; color: var(--paper);
-    text-shadow: 0 16px 48px rgba(0,0,0,0.55);
+  /* MERCADO OESTE grande, protagonista — o lockup da marca virando titulo */
+  .hero__brand {
+    font-size: clamp(2.1rem, 9vw, 6rem); gap: 0.42em; margin: 0 0 1.5rem;
+    align-items: center; flex-wrap: wrap; letter-spacing: 0.02em;
+    text-shadow: 0 18px 50px rgba(0,0,0,0.6), 0 0 40px rgba(55,199,102,0.12);
   }
-  .hero__title em { font-style: normal; color: var(--green-bright); }
+  .hero__brand .lockup__mark { color: var(--green-bright); }
+  .hero__brand .lockup__mark svg { width: 1.15em; height: 1.15em; }
+  /* dois tons de verde da identidade: MERCADO mais claro, OESTE mais saturado */
+  .hero__brand .lockup__word { color: #6FD98F; white-space: normal; }
+  .hero__brand .lockup__word span { color: var(--green-bright); }
+  .hero__tagline {
+    font-family: var(--font-display); font-weight: 400; margin: 0 0 1.4rem;
+    font-size: clamp(1.4rem, 3.6vw, 2.6rem); line-height: 1.04; letter-spacing: 0.005em;
+    text-transform: uppercase; color: var(--paper);
+  }
+  .hero__tagline em { font-style: normal; color: var(--green-bright); }
   .hero__sub {
     max-width: 34rem; margin: 0; font-size: clamp(0.98rem, 1.35vw, 1.12rem);
     line-height: 1.6; color: var(--paper-dim);
@@ -410,7 +424,8 @@ __IMG_VARS__
   @media (prefers-reduced-motion: reduce) { .hero__cue-line::after { animation: none; transform: none; } }
   @media (max-width: 860px) {
     .hero { padding: 7rem 1.5rem 8.5rem; }
-    .hero__title { font-size: clamp(2.7rem, 13vw, 4.6rem); }
+    .hero__brand { font-size: clamp(2rem, 12vw, 3.6rem); }
+    .hero__tagline { font-size: clamp(1.25rem, 5vw, 1.9rem); }
     .hero__glow--far { top: -8%; right: -34%; }
     .hero__glow--near { bottom: -34%; left: -34%; }
   }
@@ -481,10 +496,12 @@ __IMG_VARS__
   }
 
   /* ---------- grande transição final ---------- */
+  /* altura garantida pra caber o anel de produtos inteiro (sem corte):
+     raio do anel ~40% de 620px + folga dos thumbs + respiro vertical */
   .finale {
-    position: relative; min-height: 100vh;
+    position: relative; min-height: max(100vh, 45rem);
     display: flex; align-items: center; justify-content: center;
-    text-align: center; padding: clamp(4rem, 12vh, 7rem) 1.5rem;
+    text-align: center; padding: clamp(5rem, 13vh, 7.5rem) 1.5rem;
     background: var(--graphite); overflow: hidden;
   }
   .finale::before {
@@ -493,24 +510,26 @@ __IMG_VARS__
   }
   .finale::after {
     content: ""; position: absolute; inset: 0; pointer-events: none;
-    background: radial-gradient(50% 46% at 50% 46%, rgba(31,162,76,0.14), transparent 72%);
+    background: radial-gradient(52% 48% at 50% 50%, rgba(31,162,76,0.16), transparent 72%);
   }
+  /* elipse (mais larga que alta): espalha os produtos pros lados, longe do texto,
+     e encurta a extensao vertical pra nunca cortar em tela baixa */
   .finale__orbit {
     position: absolute; z-index: 1; top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    width: min(96vw, 760px); aspect-ratio: 1; pointer-events: none;
+    transform: translate(-50%, calc(-50% + 26px));
+    width: min(96vw, 860px); height: min(82vw, 690px); pointer-events: none;
   }
   .finale__thumb {
-    position: absolute; width: clamp(46px, 9vw, 78px); height: clamp(46px, 9vw, 78px);
+    position: absolute; width: clamp(38px, 6vw, 58px); height: clamp(38px, 6vw, 58px);
     transform: translate(-50%, -50%);
     background-repeat: no-repeat; background-position: center; background-size: contain;
-    opacity: 0.72; /* so recua os produtos distantes; nao altera a imagem */
+    opacity: 0.8; /* so recua os produtos distantes; nao altera a imagem */
     animation: orbitFloat 6s ease-in-out infinite;
     animation-delay: calc(var(--d) * -0.8s);
   }
-  @keyframes orbitFloat { 0%,100% { margin-top: -6px; } 50% { margin-top: 6px; } }
+  @keyframes orbitFloat { 0%,100% { margin-top: -5px; } 50% { margin-top: 5px; } }
   @media (prefers-reduced-motion: reduce) { .finale__thumb { animation: none; } }
-  .finale__core { position: relative; z-index: 2; max-width: 25rem; padding: 0 1rem; }
+  .finale__core { position: relative; z-index: 2; max-width: 22rem; padding: 0 1rem; }
   .finale__lockup { font-size: clamp(1.35rem, 3.2vw, 2.1rem); margin-bottom: clamp(1.4rem, 4vh, 2rem); }
   .finale__headline {
     font-family: var(--font-display); font-weight: 400; margin: 0 0 1.6rem;
@@ -528,8 +547,8 @@ __IMG_VARS__
   }
   .finale__cta:hover { border-color: var(--green-bright); background: rgba(55,199,102,0.12); transform: translateY(-2px); }
   @media (max-width: 720px) {
-    /* encolhe o anel pra caber na tela do celular sem cortar os produtos */
-    .finale__orbit { transform: translate(-50%, -50%) scale(0.74); }
+    /* encolhe um pouco o anel pra folgar nas laterais do celular */
+    .finale__orbit { transform: translate(-50%, calc(-50% + 16px)) scale(0.84); }
     .finale__headline { font-size: clamp(1.7rem, 7vw, 2.3rem); }
   }
 
@@ -972,7 +991,8 @@ HTML = f"""<!doctype html>
     </div>
     <div class="hero__inner">
       <p class="hero__eyebrow">Supermercado · entrega em casa</p>
-      <h1 class="hero__title">O mercado que<br><em>vai até você.</em></h1>
+      <h1 class="lockup hero__brand">{LOCKUP}</h1>
+      <p class="hero__tagline">O mercado que <em>vai até você.</em></p>
       <p class="hero__sub">Tudo o que você precisa, a poucos cliques. Role a página e conheça os produtos do Mercado Oeste, um de cada vez.</p>
     </div>
     <div class="hero__cue" aria-hidden="true">

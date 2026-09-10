@@ -15,11 +15,13 @@ fica grande na tela, ganha sua própria atmosfera de cor (puxada da embalagem) e
 ao próximo. A segunda metade mostra como isso viraria uma compra de verdade — catálogo, carrinho
 e entrega em casa.
 
-`INTRO` → `AÇÚCAR` → `ARROZ` → `FEIJÃO` → `FRUTEIRA` → `LEITE` → `ÓLEO` → `CAFÉ` → `TRANSIÇÃO FINAL` → `MEUS PRODUTOS` → `ENTREGA`
+`INTRO` → `ARROZ` → `FEIJÃO` → `AÇÚCAR` → `CAFÉ` → `ÓLEO` → `LEITE` → `HORTIFRUTI` → `TRANSIÇÃO FINAL` → `MEUS PRODUTOS` → `ENTREGA`
 
-**Só estes 7 produtos participam do scroll cinematográfico.** A seção "Meus produtos" é a parte
-funcional (catálogo): os 6 vendáveis das cenas + itens que existem apenas no catálogo
-(massas, ovos, Coca-Cola, água). Produtos novos entram só aqui — nunca no scroll.
+**Só estes 7 produtos participam do scroll cinematográfico**, cada um com o PNG de
+fundo já removido (só o fundo externo — branco/letras/reflexos da embalagem ficam
+intactos). A seção "Meus produtos" é a parte funcional (catálogo): os 6 vendáveis
+das cenas + itens que existem apenas no catálogo (massas, ovos, Coca-Cola, água,
+detergente, papel higiênico, sabão). Produtos novos entram só aqui — nunca no scroll.
 
 ---
 
@@ -37,7 +39,9 @@ funcional (catálogo): os 6 vendáveis das cenas + itens que existem apenas no c
 ## Como funciona
 
 Página única, autossuficiente. Tudo é gerado por [`build.py`](build.py), que embute as imagens
-reais dos produtos (`assets/`, exatamente como estão, sem processamento) e escreve o `index.html`.
+reais dos produtos e escreve o `index.html`. Os 7 do scroll usam versões `-cut.png` (só o
+fundo externo removido, por flood fill a partir das bordas — nunca máscara global por cor);
+os produtos só de catálogo entram como estão.
 
 ```
 python build.py
